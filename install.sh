@@ -77,11 +77,11 @@ fi
 # ---- 6. patch settings.json (SessionStart hook) ----
 HOOK_CMD="$VAULT_HOME/scripts/scan-sessions.sh --quiet"
 
-python3 - "$SETTINGS" "$HOOK_CMD" <<'PY'
-import json, os, sys
+python3 - "$SETTINGS" "$HOOK_CMD" "$VAULT_HOME" <<'PY'
+import json, os, re, sys
 from pathlib import Path
 
-settings_path, hook_cmd = sys.argv[1], sys.argv[2]
+settings_path, hook_cmd, vault_home = sys.argv[1], sys.argv[2], sys.argv[3]
 p = Path(settings_path)
 data = {}
 if p.exists() and p.stat().st_size > 0:
@@ -94,11 +94,24 @@ if p.exists() and p.stat().st_size > 0:
 hooks = data.setdefault("hooks", {})
 session_hooks = hooks.setdefault("SessionStart", [])
 
-# Normalize shape: list of {matcher?, hooks: [...]}
-def _cmds(entry):
-    return [h.get("command") for h in entry.get("hooks", []) if isinstance(h, dict)]
+# Normalize paths for dedupe: expand $HOME, $CLAUDE_VAULT, ~, resolve to real path.
+def _norm(cmd: str) -> str:
+    if not cmd:
+        return ""
+    s = cmd
+    s = s.replace("$CLAUDE_VAULT", vault_home)
+    s = s.replace("${CLAUDE_VAULT}", vault_home)
+    s = s.replace("$HOME", os.environ.get("HOME", ""))
+    s = s.replace("${HOME}", os.environ.get("HOME", ""))
+    s = os.path.expanduser(s)
+    return re.sub(r"\s+", " ", s).strip()
 
-already = any(hook_cmd in (_cmds(e) or []) for e in session_hooks if isinstance(e, dict))
+target = _norm(hook_cmd)
+
+def _cmds(entry):
+    return [_norm(h.get("command", "")) for h in entry.get("hooks", []) if isinstance(h, dict)]
+
+already = any(target in _cmds(e) for e in session_hooks if isinstance(e, dict))
 
 if already:
     print("[vault-install] SessionStart hook already present — no change")
