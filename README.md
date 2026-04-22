@@ -26,6 +26,32 @@ shared session-ID registry. See [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md).
 
 ## Install
 
+### Option A — Claude Code plugin (recommended)
+
+Inside Claude Code:
+
+```
+/plugin marketplace add mehmetcakoglu/claude-obsidian-vault-skill
+/plugin install vault@claude-obsidian-vault-skill
+```
+
+That's it. The plugin brings the skill, the three slash commands
+(`/vault:init`, `/vault:scan`, `/vault:ingest`), and the `SessionStart` hook
+with it. On first launch the hook seeds `~/claude-vault/` from the plugin's
+bundled templates if it doesn't exist yet.
+
+Custom vault location:
+
+```
+# in your shell profile (before starting Claude Code)
+export CLAUDE_VAULT=/some/other/path
+```
+
+### Option B — Standalone install (no plugin system)
+
+Use this if you want a git-managed copy on disk instead of going through the
+plugin system:
+
 ```bash
 git clone https://github.com/mehmetcakoglu/claude-obsidian-vault-skill.git
 cd claude-obsidian-vault-skill
@@ -36,10 +62,10 @@ The installer is idempotent — rerun it any time to update the skill/commands.
 It:
 - Copies the skill to `~/.claude/skills/vault/`
 - Copies the slash commands to `~/.claude/commands/vault/`
-- Seeds `~/claude-vault/` with a CLAUDE.md, index.md, log.md, .gitignore, and
+- Seeds `~/claude-vault/` with CLAUDE.md, index.md, log.md, .gitignore, and
   the scan script (won't overwrite existing files)
 - Patches `~/.claude/settings.json` to register the SessionStart hook (safe:
-  deduplicates by command string)
+  normalizes paths and deduplicates)
 - `git init`s the global vault if it isn't a repo yet
 
 Custom vault location:

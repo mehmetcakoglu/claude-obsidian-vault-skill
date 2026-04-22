@@ -1,0 +1,36 @@
+{
+  "name": "vault",
+  "description": "Hybrid knowledge vault for Claude Code — auto-archives sessions into an Obsidian-compatible wiki, split between a global (~/claude-vault/) vault and per-project (docs/vault/) vaults. Builds on the LLM-Wiki pattern by Selma Kocabıyık.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Mehmet Çakoğlu"
+  },
+  "homepage": "https://github.com/mehmetcakoglu/claude-obsidian-vault-skill",
+  "repository": "https://github.com/mehmetcakoglu/claude-obsidian-vault-skill",
+  "license": "MIT",
+  "keywords": [
+    "knowledge-management",
+    "obsidian",
+    "vault",
+    "wiki",
+    "llm-wiki",
+    "session-archive",
+    "documentation"
+  ],
+  "category": "productivity",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/scan-sessions.sh --quiet",
+            "run_in_background": true,
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

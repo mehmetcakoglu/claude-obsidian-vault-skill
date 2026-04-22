@@ -1,0 +1,29 @@
+{
+  "name": "claude-obsidian-vault-skill",
+  "owner": {
+    "name": "Mehmet Çakoğlu"
+  },
+  "metadata": {
+    "description": "Single-plugin marketplace for the Obsidian-compatible vault skill — auto-archives Claude Code sessions into a persistent, atomic knowledge wiki.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "vault",
+      "source": "./plugins/vault",
+      "description": "Hybrid knowledge vault: auto-archives Claude Code sessions into an Obsidian-compatible wiki, split between a global (~/claude-vault/) vault and per-project (docs/vault/) vaults.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/mehmetcakoglu/claude-obsidian-vault-skill",
+      "license": "MIT",
+      "keywords": [
+        "knowledge-management",
+        "obsidian",
+        "vault",
+        "wiki",
+        "llm-wiki",
+        "session-archive"
+      ],
+      "category": "productivity"
+    }
+  ]
+}

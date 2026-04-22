@@ -24,6 +24,20 @@ LIVE_THRESHOLD_SEC=600  # 10 minutes
 QUIET=0
 if [[ "${1:-}" == "--quiet" ]]; then QUIET=1; fi
 
+# First-run bootstrap: when this script is invoked from a plugin hook
+# (CLAUDE_PLUGIN_ROOT is set by Claude Code) and the vault doesn't exist yet,
+# seed it from the plugin's bundled templates.
+if [[ -n "${CLAUDE_PLUGIN_ROOT:-}" && ! -f "$VAULT/CLAUDE.md" ]]; then
+  TPL="$CLAUDE_PLUGIN_ROOT/templates/global-vault"
+  if [[ -d "$TPL" ]]; then
+    mkdir -p "$VAULT"/{sources/sessions,sources/prompts,decisions,concepts,entities,lessons,syntheses,archive,raw,scripts,state}
+    for f in CLAUDE.md index.md log.md .gitignore; do
+      [[ ! -e "$VAULT/$f" && -f "$TPL/$f" ]] && cp "$TPL/$f" "$VAULT/$f"
+    done
+    [[ $QUIET -eq 0 ]] && echo "scan-sessions: bootstrapped vault at $VAULT from plugin templates"
+  fi
+fi
+
 mkdir -p "$STATE_DIR"
 touch "$INGESTED"
 
