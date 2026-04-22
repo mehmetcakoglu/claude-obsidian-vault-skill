@@ -1,0 +1,13 @@
+# Auto-generated scan state — not worth versioning
+state/pending.md
+state/.scan.tsv
+
+# Large raw source material — keep locally, do not commit
+raw/**/*.jsonl
+raw/**/*.zip
+raw/**/*.tar.gz
+
+# Editor / OS noise
+.DS_Store
+.obsidian/workspace*
+.obsidian/cache

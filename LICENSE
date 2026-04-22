@@ -1,6 +1,11 @@
 MIT License
+Copyright (c) 2026 Mehmet Çakoğlu
 
-Copyright (c) 2026 Mehmet Cakoglu
+This project is a derivative work that packages the LLM-Wiki pattern
+(RAW → WIKI ← SCHEMA, with INGEST / QUERY / LINT operations) introduced by
+Selma Kocabıyık in the knowledge-pipeline project
+(https://github.com/selmakcby/knowledge-pipeline), which is also distributed
+under the MIT license. See docs/ATTRIBUTION.md for the full attribution.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

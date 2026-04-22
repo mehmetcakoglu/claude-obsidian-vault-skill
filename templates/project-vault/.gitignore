@@ -1,0 +1,9 @@
+# Raw source material — too large and often contains secrets; keep out of git
+raw/**/*.jsonl
+raw/**/*.zip
+raw/**/*.tar.gz
+
+# Editor / OS noise
+.DS_Store
+.obsidian/workspace*
+.obsidian/cache
