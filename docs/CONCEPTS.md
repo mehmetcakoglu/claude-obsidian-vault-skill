@@ -83,16 +83,38 @@ project vault is never re-queued for the global vault.
 
 ## Semi-automatic ingest (Claude Code addition)
 
-**Scan is automatic; ingest is user-triggered.**
+**Scan is automatic; context injection is automatic; ingest is user-triggered.**
 
-A `SessionStart` hook runs `scan-sessions.sh --quiet` on every new
-conversation. It walks `~/.claude/projects/*/*.jsonl`, skips live sessions
-(mtime < 10 min), skips already-ingested IDs, and writes a sorted queue at
-`~/claude-vault/state/pending.md`.
+### What happens at session start
 
-The user triggers `/vault:ingest` when they want to process the next session.
-The LLM parses it in a sandbox, summarizes, waits for approval, writes pages,
-commits. One session per invocation — reviewable, bounded token cost.
+A synchronous `SessionStart` hook runs `vault-context.py` on every new
+conversation. In one pass it:
+
+1. **Scans** `~/.claude/projects/*/*.jsonl` — skips live sessions (mtime < 10
+   min) and already-ingested IDs, writes a sorted queue to
+   `~/claude-vault/state/pending.md`.
+2. **Auto-creates a project entity** — if no entity exists for the current
+   project directory, one is generated from stack markers (`manage.py`,
+   `package.json`, `go.mod`…) and inserted into `index.md`.
+3. **Injects vault context** — outputs a `<vault-context>` block (vault index,
+   project entity, recent sessions, pending count) that Claude Code captures as
+   a `system-reminder`. Claude reads this before the first user message.
+
+This means past decisions and lessons are available **without an extra round
+trip** — no manual query needed at the start of each session.
+
+### What stays user-triggered
+
+`/vault:ingest` — the LLM parses a JSONL in a sandbox, summarizes (5–7
+bullets), waits for approval, writes pages, commits. One session per invocation
+— reviewable, bounded token cost, human in the loop for routing and secret
+filtering.
+
+### Cross-platform
+
+All scripts (`scan-sessions.py`, `vault-context.py`) are pure Python 3
+(stdlib only). Unix `.sh` and Windows `.ps1` wrappers are thin one-liners that
+call the Python scripts. Requires Python 3 in `PATH`.
 
 ## Atomicity
 

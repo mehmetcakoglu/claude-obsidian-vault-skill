@@ -1,7 +1,7 @@
 {
   "name": "vault",
-  "description": "Hybrid knowledge vault for Claude Code — auto-archives sessions into an Obsidian-compatible wiki, split between a global (~/claude-vault/) vault and per-project (docs/vault/) vaults. Builds on the LLM-Wiki pattern by Selma Kocabıyık.",
-  "version": "0.1.0",
+  "description": "Hybrid knowledge vault for Claude Code — auto-archives sessions into an Obsidian-compatible wiki, split between a global (~/claude-vault/) vault and per-project (docs/vault/) vaults. At session start, vault context (index, project entity, recent sessions) is automatically injected so Claude can reference past decisions and lessons without re-discovering them. Builds on the LLM-Wiki pattern by Selma Kocabıyık.",
+  "version": "0.2.0",
   "author": {
     "name": "Mehmet Çakoğlu"
   },
@@ -15,19 +15,19 @@
     "wiki",
     "llm-wiki",
     "session-archive",
-    "documentation"
+    "documentation",
+    "cross-platform"
   ],
   "category": "productivity",
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/scan-sessions.sh --quiet",
-            "run_in_background": true,
-            "timeout": 20
+            "command": "python3 -c \"import pathlib,subprocess,sys; p=pathlib.Path('${CLAUDE_PLUGIN_ROOT}')/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None\"",
+            "timeout": 30
           }
         ]
       }

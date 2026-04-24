@@ -42,7 +42,7 @@ Always read the relevant `CLAUDE.md` before operating on a vault — the schema 
 | `/vault:scan` | Scan `~/.claude/projects/*/*.jsonl` and update the pending-ingest queue |
 | `/vault:ingest` | Process the next pending session into the appropriate vault following LLM-Wiki INGEST rules |
 
-A `SessionStart` hook runs `scan-sessions.sh --quiet` automatically on every new session, so manual `/vault:scan` is rarely needed.
+A `SessionStart` hook runs `vault-context.py` **synchronously** on every new session. It scans the queue, auto-creates a project entity if one doesn't exist, then injects the vault index + project entity + recent sessions into Claude's context as a `system-reminder`. This means Claude already has relevant decisions and lessons loaded before the first user message — manual `/vault:scan` is rarely needed.
 
 **Session registry**: `~/claude-vault/state/ingested.txt` — shared between both vaults. After any ingest (global or project) the session ID is appended here so the scan never proposes it again.
 
@@ -165,17 +165,21 @@ Body. Every non-trivial claim points to a source (`[[sources/...]]` or external 
 - User has explicitly said "don't log this" or similar
 
 ### When to consult the vault
+- **At session start**: vault context is auto-injected via `SessionStart` hook — read the `<vault-context>` block in the system prompt before answering any coding question
 - User uses temporal cues ("earlier", "last week", "that decision") → check `index.md` first
 - A bug is reported → search `bugs/` and `lessons/` for similar
 - A project-specific question → project vault first, global vault fallback
 - A cross-project question → global vault first
+- Before starting a coding task → check `decisions/` and `lessons/` for relevant context
 
 ## Related tooling
 
-- `~/claude-vault/scripts/scan-sessions.sh` — JSONL scanner (bash + embedded python)
+- `~/claude-vault/scripts/vault-context.py` — synchronous SessionStart hook: scans queue, auto-creates project entity, injects vault context into session
+- `~/claude-vault/scripts/scan-sessions.py` — JSONL scanner; writes sorted pending queue (cross-platform Python)
+- `*.sh` / `*.ps1` wrappers — thin callers for Unix and Windows PowerShell respectively
 - `~/.claude/commands/vault/{init,scan,ingest}.md` — slash command definitions
-- `~/claude-vault/state/ingested.txt` — shared session ID registry
-- `~/.claude/settings.json` `SessionStart` hook — runs scan automatically
+- `~/claude-vault/state/ingested.txt` — shared session ID registry (global + all project vaults)
+- `~/.claude/settings.json` `SessionStart` hook — runs `vault-context.py` synchronously on every new conversation
 
 ## Out of scope (use other mechanisms instead)
 

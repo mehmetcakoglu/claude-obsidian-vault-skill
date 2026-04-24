@@ -153,14 +153,18 @@ dead `related_code` paths, duplicate entities → a report at
 
 ## Philosophy: semi-automatic
 
-**Scan is automatic. Ingest is user-triggered.** This is deliberate:
+**Scan + context injection are automatic. Ingest is user-triggered.**
 
-- Scanning is cheap and non-destructive — let it run on every session start.
-- Ingest writes files, decides routing, and filters secrets. That deserves
-  human review: a 5–7 bullet summary with an approval gate every time.
+At every session start, `vault-context.py` runs synchronously and:
+1. Refreshes the pending queue (cheap scan, non-destructive)
+2. Auto-creates a project entity if none exists
+3. Injects vault context into Claude as a `system-reminder` — past decisions
+   and lessons are available **before the first message**, no manual query
 
-This keeps token use bounded and prevents misclassification or accidental
-secret leakage into a vault.
+Ingest is the only step that stays user-triggered: it writes files, decides
+routing, and filters secrets. That deserves human review every time — a 5–7
+bullet summary with an approval gate keeps token cost bounded and prevents
+misclassification or accidental secret leakage.
 
 ## Compatibility
 
