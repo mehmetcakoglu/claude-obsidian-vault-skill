@@ -20,9 +20,11 @@ shared session-ID registry. See [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md).
 | `/vault:scan` slash command | Refreshes the pending-ingest queue (also runs automatically at session start) |
 | `/vault:ingest` slash command | Processes the next pending Claude Code session into the appropriate vault |
 | `vault` skill | Auto-activates whenever you mention archiving, prior decisions, bugs, or past sessions |
-| `scan-sessions.sh` | Scans `~/.claude/projects/*/*.jsonl` and writes a sorted queue |
+| `scan-sessions.py` | Scans `~/.claude/projects/*/*.jsonl` and writes a sorted queue (cross-platform Python) |
+| `vault-context.py` | Injects vault context (index + project entity + recent sessions) into Claude at session start |
+| `*.sh` / `*.ps1` | Thin wrappers that call the Python scripts (Unix / Windows) |
 | Global vault skeleton | Lives at `~/claude-vault/` (configurable via `$CLAUDE_VAULT`) |
-| `SessionStart` hook | Runs the scan in the background on every new conversation |
+| `SessionStart` hook | Injects vault context synchronously on every new conversation |
 
 ## Install
 
@@ -126,7 +128,10 @@ dead `related_code` paths, duplicate entities → a report at
 │                   ~/.claude/projects/*/*.jsonl                       │
 │             (raw Claude Code session transcripts)                    │
 └───────────────────────────┬──────────────────────────────────────────┘
-                            │ scan-sessions.sh (SessionStart hook)
+                            │ vault-context.py (SessionStart hook, sync)
+                            │   ├─ scans pending queue
+                            │   ├─ auto-creates project entity
+                            │   └─ injects context → Claude system-reminder
                             ▼
                ~/claude-vault/state/pending.md   (queue)
                             │
@@ -159,9 +164,35 @@ secret leakage into a vault.
 
 ## Compatibility
 
-- **Claude Code** (CLI, VS Code extension, Cursor, Antigravity) — full support
-- **Claude.ai web chat / Claude Work** — **not supported**: no local filesystem
-  access. The vault is an on-disk artifact.
+| Platform | Support |
+|---|---|
+| macOS | ✅ Full support |
+| Linux | ✅ Full support |
+| Windows (Git Bash / WSL) | ✅ Full support via `install.sh` |
+| Windows (PowerShell / cmd) | ✅ Use `.ps1` wrappers; add hook manually (see below) |
+| Claude.ai web / Claude Work | ❌ No local filesystem access |
+
+### Windows manual setup (PowerShell)
+
+1. Copy `plugins/vault/scripts/` to `%USERPROFILE%\claude-vault\scripts\`
+2. Copy `plugins/vault/commands/` to `%USERPROFILE%\.claude\commands\vault\`
+3. Copy `plugins/vault/skills/vault/SKILL.md` to `%USERPROFILE%\.claude\skills\vault\SKILL.md`
+4. Add to `%USERPROFILE%\.claude\settings.json` → `hooks.SessionStart`:
+
+```json
+{
+  "matcher": "",
+  "hooks": [{
+    "type": "command",
+    "command": "python -c \"import pathlib,subprocess,sys; p=pathlib.Path.home()/'claude-vault'/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None\"",
+    "timeout": 30
+  }]
+}
+```
+
+> Replace `python` with `python3` if that's what's in your PATH.
+
+**Requires Python 3** in PATH on all platforms.
 
 ## License
 
