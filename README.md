@@ -19,6 +19,7 @@ shared session-ID registry. See [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md).
 | `/vault:init` slash command | Bootstraps `docs/vault/` for the current project, asks a few questions, fills in a CLAUDE.md template |
 | `/vault:scan` slash command | Refreshes the pending-ingest queue (also runs automatically at session start) |
 | `/vault:ingest` slash command | Processes the next pending Claude Code session into the appropriate vault |
+| `/vault:batch-ingest [N]` slash command | Processes up to N pending sessions in one run (default 5, pass `all` for the full queue) |
 | `vault` skill | Auto-activates whenever you mention archiving, prior decisions, bugs, or past sessions |
 | `scan-sessions.py` | Scans `~/.claude/projects/*/*.jsonl` and writes a sorted queue (cross-platform Python) |
 | `vault-context.py` | Injects vault context (index + project entity + recent sessions) into Claude at session start |
@@ -96,13 +97,20 @@ After any conversation ends (>10 min since last message), it shows up in the
 queue. To process it:
 
 ```
-/vault:scan      # optional — hook runs this automatically anyway
-/vault:ingest    # processes the next (biggest) session, asks for approval, writes pages, commits
+/vault:scan            # optional — hook runs this automatically anyway
+/vault:ingest          # processes the next (biggest) session, writes pages, commits
+/vault:batch-ingest    # processes up to 5 sessions in one run (default limit)
+/vault:batch-ingest 3  # process at most 3 sessions
+/vault:batch-ingest all  # process the entire queue (careful on large queues)
 ```
 
 If the session belonged to a project that has `docs/vault/CLAUDE.md`, the pages
 go into the project vault. Otherwise they go to the global vault. The session
 ID lands in the shared `state/ingested.txt` registry either way.
+
+> **Context window note:** each session adds a few KB to the active context.
+> For queues larger than 7, split into two `batch-ingest` runs or enable
+> `auto_ingest` to let the vault drain gradually across sessions.
 
 ### Asking questions (QUERY)
 

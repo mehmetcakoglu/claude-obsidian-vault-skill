@@ -12,7 +12,7 @@ description: |
   - Reports a bug, makes an architectural decision, or discovers a reusable pattern worth recording
   - Wants cross-session continuity (remembering what was decided days or weeks ago)
 
-  Proactively suggests recording when the user makes a decision, fixes a bug, or establishes a pattern that would be useful later. Uses the `/vault:init`, `/vault:scan`, and `/vault:ingest` slash commands when they match cleanly, but performs ingest/query/lint operations directly when the user's request doesn't map to a command.
+  Proactively suggests recording when the user makes a decision, fixes a bug, or establishes a pattern that would be useful later. Uses the `/vault:init`, `/vault:scan`, `/vault:ingest`, and `/vault:batch-ingest` slash commands when they match cleanly, but performs ingest/query/lint operations directly when the user's request doesn't map to a command.
 ---
 
 # Vault Skill — Hybrid Knowledge Archive
@@ -41,8 +41,11 @@ Always read the relevant `CLAUDE.md` before operating on a vault — the schema 
 | `/vault:init` | Bootstrap a new project's vault skeleton (run once per project) |
 | `/vault:scan` | Scan `~/.claude/projects/*/*.jsonl` and update the pending-ingest queue |
 | `/vault:ingest` | Process the next pending session into the appropriate vault following LLM-Wiki INGEST rules |
+| `/vault:batch-ingest [N]` | Process up to N pending sessions in one run (default 5, `all` for the full queue); stops early if context window approaches capacity |
 
 A `SessionStart` hook runs `vault-context.py` **synchronously** on every new session. It scans the queue, auto-creates a project entity if one doesn't exist, then injects the vault index + project entity + recent sessions into Claude's context as a `system-reminder`. This means Claude already has relevant decisions and lessons loaded before the first user message — manual `/vault:scan` is rarely needed.
+
+If `auto_ingest=true` is set in `~/claude-vault/vault-config.json`, the hook also instructs Claude to drain the pending queue automatically at session start (respecting `auto_ingest_max_per_session`).
 
 **Session registry**: `~/claude-vault/state/ingested.txt` — shared between both vaults. After any ingest (global or project) the session ID is appended here so the scan never proposes it again.
 

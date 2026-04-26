@@ -55,10 +55,10 @@ say "Installed skill → $SKILL_DST/SKILL.md"
 
 # ---- 2. install slash commands ----
 mkdir -p "$CMD_DST"
-for f in init.md scan.md ingest.md; do
+for f in init.md scan.md ingest.md batch-ingest.md; do
   cp -f "$CMD_SRC/$f" "$CMD_DST/$f"
 done
-say "Installed slash commands: /vault:init /vault:scan /vault:ingest"
+say "Installed slash commands: /vault:init /vault:scan /vault:ingest /vault:batch-ingest"
 
 # ---- 3. install global vault skeleton (do not overwrite existing files) ----
 mkdir -p "$VAULT_HOME"/{sources/sessions,sources/prompts,decisions,concepts,entities,lessons,syntheses,archive,raw,scripts,state}
@@ -153,7 +153,8 @@ say ""
 say "Installation complete."
 say "  1. Start a new Claude Code session — vault context is auto-injected."
 say "  2. Run /vault:init inside a project to set up a project vault."
-say "  3. Run /vault:ingest to process pending sessions."
+say "  3. Run /vault:ingest to process the next pending session."
+say "     Run /vault:batch-ingest [N] to process up to N sessions at once (default 5)."
 say "  4. Optional: set auto_ingest=true in $VAULT_HOME/vault-config.json"
 say "     to process the pending queue automatically at each session start."
 say ""
