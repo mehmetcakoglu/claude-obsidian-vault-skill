@@ -234,6 +234,58 @@ into Claude to `{vault}/state/token-log.txt`:
 Token estimate uses 1 token ≈ 4 characters (conservative for mixed Turkish/English text).
 The log is append-only; inspect it any time to understand your average injection cost.
 
+## Token economics
+
+### The core tradeoff
+
+The vault adds a fixed **injection cost** at session start, and eliminates a
+variable **discovery cost** during the session.
+
+```
+Without vault:
+  session start → 0 tokens from vault
+  per task      → Claude reads 3-10 files to understand context
+                → user re-explains past decisions
+                → Claude occasionally makes wrong calls (unknown history)
+  total         → high, unpredictable per session
+
+With vault:
+  session start → ~1,000–3,000 tokens injected (index + recent sessions)
+  per task      → past decisions already in context → fewer file reads
+                → no re-explanation
+                → fewer wrong turns
+  total         → predictable upfront cost, lower marginal cost per task
+```
+
+### Breakeven formula
+
+The vault pays for itself within a session when:
+
+```
+vault_injection_tokens  <  Σ (files_read × avg_file_tokens) + user_explanation_tokens
+```
+
+In practice this means: **if a session involves ~2 or more questions that
+require past context, the vault is net-positive on tokens.**
+
+### Where savings are largest
+
+| Situation | Savings |
+|---|---|
+| Long-running project (many decisions, known bugs) | High |
+| Returning to a project after a gap | High |
+| Debugging a class of problems seen before | High |
+| Greenfield session, no history yet | None |
+| Single one-off task | Low |
+
+### The real value: avoiding wrong decisions
+
+Token math aside, the deeper benefit is **decision quality**. Without vault
+context, Claude may reproduce a pattern that was previously ruled out, reopen a
+bug that was fixed, or miss a constraint that was decided weeks ago. Correcting
+those mistakes costs more than any token delta. The vault makes past knowledge
+the default, not something that needs to be re-stated each session.
+
 ## Philosophy: semi-automatic
 
 **Scan + context injection are automatic. Ingest is user-triggered by default.**
