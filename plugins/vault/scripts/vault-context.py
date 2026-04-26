@@ -10,6 +10,8 @@ What it does:
   2. Auto-creates a project entity if none exists for the current project
   3. Outputs: index.md + project entity + recent project sessions + pending count
   4. Appends an explicit instruction for Claude to read relevant vault pages
+  5. If vault-config.json has auto_ingest=true, instructs Claude to process the
+     pending queue automatically before responding to the first user message
 
 Usage (in ~/.claude/settings.json):
     macOS / Linux:
@@ -18,6 +20,7 @@ Usage (in ~/.claude/settings.json):
         python -c "import pathlib,subprocess,sys; p=pathlib.Path.home()/'claude-vault'/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None"
 """
 
+import json
 import os
 import re
 import sys
@@ -149,6 +152,18 @@ def recent_sessions(vault: Path, project_name: str, slug: str, limit: int = 3) -
     return results
 
 
+# ── config ────────────────────────────────────────────────────────────────────
+
+def read_config(vault: Path) -> dict:
+    cfg_file = vault / "vault-config.json"
+    if not cfg_file.exists():
+        return {}
+    try:
+        return json.loads(cfg_file.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
 # ── pending count ─────────────────────────────────────────────────────────────
 
 def pending_count(vault: Path) -> int:
@@ -171,6 +186,10 @@ def main() -> None:
 
     run_scan(vault)
     entity_file = ensure_entity(vault, project_dir)
+
+    cfg              = read_config(vault)
+    auto_ingest      = bool(cfg.get("auto_ingest", False))
+    auto_ingest_max  = int(cfg.get("auto_ingest_max_per_session", 5))
 
     out: list[str] = ["<vault-context>", ""]
 
@@ -195,8 +214,23 @@ def main() -> None:
     # Pending ingest
     n = pending_count(vault)
     if n > 0:
-        out += ["## Bekleyen Ingest", "",
-                f"{n} session ingest bekliyor → `/vault:ingest` ile işleyebilirsin.", ""]
+        if auto_ingest:
+            out += [
+                "## Bekleyen Ingest — ⚡ OTOMATİK MOD",
+                "",
+                f"**auto_ingest=true**: {n} session ingest kuyruğunda.",
+                f"Kullanıcının ilk mesajına geçmeden önce `/vault:ingest` komutunu en fazla "
+                f"{auto_ingest_max} kez çalıştır (her seferinde 1 session işlenir).",
+                "Kuyruk boşaldığında veya limite ulaşıldığında normal konuşmaya geç.",
+                "",
+            ]
+        else:
+            out += [
+                "## Bekleyen Ingest",
+                "",
+                f"{n} session ingest bekliyor → `/vault:ingest` ile işleyebilirsin.",
+                "",
+            ]
 
     # Instruction
     out += [

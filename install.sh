@@ -63,7 +63,7 @@ say "Installed slash commands: /vault:init /vault:scan /vault:ingest"
 # ---- 3. install global vault skeleton (do not overwrite existing files) ----
 mkdir -p "$VAULT_HOME"/{sources/sessions,sources/prompts,decisions,concepts,entities,lessons,syntheses,archive,raw,scripts,state}
 
-for f in CLAUDE.md index.md log.md .gitignore; do
+for f in CLAUDE.md index.md log.md .gitignore vault-config.json; do
   if [[ ! -e "$VAULT_HOME/$f" ]]; then
     cp "$TPL_GLOBAL/$f" "$VAULT_HOME/$f"
     say "Seeded $VAULT_HOME/$f"
@@ -154,5 +154,7 @@ say "Installation complete."
 say "  1. Start a new Claude Code session — vault context is auto-injected."
 say "  2. Run /vault:init inside a project to set up a project vault."
 say "  3. Run /vault:ingest to process pending sessions."
+say "  4. Optional: set auto_ingest=true in $VAULT_HOME/vault-config.json"
+say "     to process the pending queue automatically at each session start."
 say ""
 say "Windows (no Git Bash): see README.md for manual settings.json setup."

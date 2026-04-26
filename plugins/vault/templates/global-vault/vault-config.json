@@ -1,0 +1,5 @@
+{
+  "_comment": "Vault configuration — https://github.com/mehmetcakoglu/claude-obsidian-vault-skill",
+  "auto_ingest": false,
+  "auto_ingest_max_per_session": 5
+}

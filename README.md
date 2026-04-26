@@ -151,9 +151,54 @@ dead `related_code` paths, duplicate entities → a report at
              (a session is never ingested twice)
 ```
 
+## Configuration
+
+`~/claude-vault/vault-config.json` controls optional behaviors. The file is
+seeded by the installer with safe defaults (all features off):
+
+```jsonc
+{
+  "auto_ingest": false,           // set to true to enable automatic ingest
+  "auto_ingest_max_per_session": 5 // max sessions processed per session start
+}
+```
+
+### Auto-ingest
+
+When `auto_ingest` is `true`, `vault-context.py` injects a directive into the
+session context instructing Claude to run `/vault:ingest` (up to
+`auto_ingest_max_per_session` times) **before responding to the first user
+message**. This drains the pending queue automatically on each session start.
+
+**When to turn it on:** you don't care about reviewing each session summary
+before it's written, or your sessions are short/low-risk.
+
+**When to leave it off (default):** you want to approve each ingest, or you're
+working in a session where vault archiving would be a distraction.
+
+Flip the flag any time — the next session picks it up:
+
+```bash
+# enable
+python3 -c "
+import json; from pathlib import Path
+p = Path.home() / 'claude-vault' / 'vault-config.json'
+d = json.loads(p.read_text()); d['auto_ingest'] = True; p.write_text(json.dumps(d, indent=2))
+"
+
+# disable
+python3 -c "
+import json; from pathlib import Path
+p = Path.home() / 'claude-vault' / 'vault-config.json'
+d = json.loads(p.read_text()); d['auto_ingest'] = False; p.write_text(json.dumps(d, indent=2))
+"
+```
+
+Or just open `~/claude-vault/vault-config.json` in any editor.
+
 ## Philosophy: semi-automatic
 
-**Scan + context injection are automatic. Ingest is user-triggered.**
+**Scan + context injection are automatic. Ingest is user-triggered by default.**
 
 At every session start, `vault-context.py` runs synchronously and:
 1. Refreshes the pending queue (cheap scan, non-destructive)
@@ -161,10 +206,10 @@ At every session start, `vault-context.py` runs synchronously and:
 3. Injects vault context into Claude as a `system-reminder` — past decisions
    and lessons are available **before the first message**, no manual query
 
-Ingest is the only step that stays user-triggered: it writes files, decides
-routing, and filters secrets. That deserves human review every time — a 5–7
-bullet summary with an approval gate keeps token cost bounded and prevents
-misclassification or accidental secret leakage.
+Ingest stays user-triggered by default because it writes files, decides
+routing, and filters secrets — that deserves human review. With `auto_ingest`
+enabled, Claude processes the queue automatically but the same `/vault:ingest`
+logic runs; the only difference is who initiates each call.
 
 ## Compatibility
 
