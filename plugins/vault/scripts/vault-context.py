@@ -27,6 +27,12 @@ import sys
 from datetime import date
 from pathlib import Path
 
+__version__ = "0.3.1"
+_UPDATE_URL = (
+    "https://raw.githubusercontent.com/mehmetcakoglu/"
+    "claude-obsidian-vault-skill/main/plugins/vault/.claude-plugin/plugin.json"
+)
+
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -164,6 +170,34 @@ def read_config(vault: Path) -> dict:
         return {}
 
 
+# ── update check ─────────────────────────────────────────────────────────────
+
+def check_for_update(vault: Path) -> str | None:
+    """Fetch latest version from GitHub once per day. Returns a notice or None."""
+    stamp = vault / "state" / "update-check.txt"
+    today = date.today().isoformat()
+    try:
+        if stamp.exists() and stamp.read_text(encoding="utf-8").strip() == today:
+            return None
+    except OSError:
+        pass
+
+    try:
+        import urllib.request
+        with urllib.request.urlopen(_UPDATE_URL, timeout=2) as resp:
+            remote = json.loads(resp.read().decode()).get("version", "")
+        stamp.write_text(today, encoding="utf-8")
+    except Exception:
+        return None
+
+    if remote and remote != __version__:
+        return (
+            f"⚠️  vault plugin update available: v{__version__} → v{remote}. "
+            f"Run `./install.sh` from the repo (or `git pull && ./install.sh`) to update."
+        )
+    return None
+
+
 # ── pending count ─────────────────────────────────────────────────────────────
 
 def pending_count(vault: Path) -> int:
@@ -231,6 +265,11 @@ def main() -> None:
                 f"{n} session ingest bekliyor → `/vault:ingest` ile işleyebilirsin.",
                 "",
             ]
+
+    # Update check (once per day, silent on network failure)
+    update_notice = check_for_update(vault)
+    if update_notice:
+        out += [update_notice, ""]
 
     # Instruction
     out += [

@@ -26,6 +26,7 @@ shared session-ID registry. See [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md).
 | `*.sh` / `*.ps1` | Thin wrappers that call the Python scripts (Unix / Windows) |
 | Global vault skeleton | Lives at `~/claude-vault/` (configurable via `$CLAUDE_VAULT`) |
 | `SessionStart` hook | Injects vault context synchronously on every new conversation |
+| Auto-update check | Checks GitHub for a newer version once per day; shows a one-line notice if available (silent on network failure) |
 
 ## Install
 
@@ -203,6 +204,19 @@ d = json.loads(p.read_text()); d['auto_ingest'] = False; p.write_text(json.dumps
 ```
 
 Or just open `~/claude-vault/vault-config.json` in any editor.
+
+### Auto-update check
+
+At session start, `vault-context.py` silently fetches the latest version from
+GitHub **once per day** and compares it to the installed version. If a newer
+release is available, a one-line notice appears in the vault context:
+
+```
+⚠️  vault plugin update available: v0.3.1 → v0.3.2. Run `./install.sh` from the repo to update.
+```
+
+The check is skipped when the network is unavailable and never blocks startup.
+The last-check date is stored in `~/claude-vault/state/update-check.txt`.
 
 ## Philosophy: semi-automatic
 
