@@ -1,7 +1,7 @@
 {
   "name": "vault",
   "description": "Hybrid knowledge vault for Claude Code — auto-archives sessions into an Obsidian-compatible wiki, split between a global (~/claude-vault/) vault and per-project (docs/vault/) vaults. At session start, vault context (index, project entity, recent sessions) is automatically injected so Claude can reference past decisions and lessons without re-discovering them. Builds on the LLM-Wiki pattern by Selma Kocabıyık.",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "author": {
     "name": "Mehmet Çakoğlu"
   },

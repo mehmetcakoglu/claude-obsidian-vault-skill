@@ -27,7 +27,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-__version__ = "0.3.1"
+__version__ = "0.3.3"
 _UPDATE_URL = (
     "https://raw.githubusercontent.com/mehmetcakoglu/"
     "claude-obsidian-vault-skill/main/plugins/vault/.claude-plugin/plugin.json"
@@ -78,6 +78,16 @@ def frontmatter_field(path: Path, field: str) -> str:
     return ""
 
 
+# ── project vault detection ───────────────────────────────────────────────────
+
+def get_project_vault(project_dir: Path) -> Path | None:
+    """Return docs/vault/ if it has a CLAUDE.md (project vault present)."""
+    candidate = project_dir / "docs" / "vault"
+    if (candidate / "CLAUDE.md").exists():
+        return candidate
+    return None
+
+
 # ── scan ──────────────────────────────────────────────────────────────────────
 
 def run_scan(vault: Path) -> None:
@@ -95,6 +105,9 @@ def run_scan(vault: Path) -> None:
 def ensure_entity(vault: Path, project_dir: Path) -> Path | None:
     home = Path.home()
     if project_dir == home or str(project_dir) in ("/", str(home)):
+        return None
+    # Skip global auto-entity if a project vault exists — it manages its own entities
+    if get_project_vault(project_dir):
         return None
 
     slug         = slugify(project_dir.name)
@@ -158,6 +171,24 @@ def recent_sessions(vault: Path, project_name: str, slug: str, limit: int = 3) -
     return results
 
 
+def recent_project_vault_sessions(project_vault: Path, limit: int = 3) -> list[dict]:
+    """Return the most recent sessions from the project vault."""
+    sessions_dir = project_vault / "sources" / "sessions"
+    if not sessions_dir.exists():
+        return []
+    results: list[dict] = []
+    for md in sorted(sessions_dir.glob("*.md"), reverse=True):
+        try:
+            title = frontmatter_field(md, "title") or md.stem
+            dt    = frontmatter_field(md, "date")
+        except OSError:
+            continue
+        results.append({"date": dt, "title": title, "path": str(md)})
+        if len(results) >= limit:
+            break
+    return results
+
+
 # ── config ────────────────────────────────────────────────────────────────────
 
 def read_config(vault: Path) -> dict:
@@ -215,8 +246,9 @@ def main() -> None:
     if not vault.exists():
         return
 
-    project_dir  = get_project_dir()
-    slug         = slugify(project_dir.name)
+    project_dir   = get_project_dir()
+    slug          = slugify(project_dir.name)
+    project_vault = get_project_vault(project_dir)
 
     run_scan(vault)
     entity_file = ensure_entity(vault, project_dir)
@@ -227,23 +259,41 @@ def main() -> None:
 
     out: list[str] = ["<vault-context>", ""]
 
-    # Index
+    # ── Project vault (docs/vault/) — injected first when present ────────────
+    if project_vault:
+        pv_index = project_vault / "index.md"
+        if pv_index.exists():
+            out += [
+                f"## Proje Vault İçerik Haritası ({project_dir.name})",
+                "",
+                pv_index.read_text(encoding="utf-8").rstrip(),
+                "",
+            ]
+        pv_sessions = recent_project_vault_sessions(project_vault)
+        if pv_sessions:
+            out += [f"## {project_dir.name} — Son Proje Sessionları", ""]
+            for s in pv_sessions:
+                out.append(f"- {s['date']}: {s['title']}  →  `{s['path']}`")
+            out.append("")
+
+    # ── Global vault ─────────────────────────────────────────────────────────
     index = vault / "index.md"
     if index.exists():
-        out += ["## Vault İçerik Haritası", "", index.read_text(encoding="utf-8").rstrip(), ""]
+        out += ["## Global Vault İçerik Haritası", "", index.read_text(encoding="utf-8").rstrip(), ""]
 
-    # Project entity
+    # Project entity (global vault, only when no project vault)
     if entity_file and entity_file.exists():
         out += [f"## Aktif Proje: {project_dir.name}", "",
                 entity_file.read_text(encoding="utf-8").rstrip(), ""]
 
-    # Recent sessions
-    sessions = recent_sessions(vault, project_dir.name, slug)
-    if sessions:
-        out += ["## Bu Projeye Ait Son Sessionlar", ""]
-        for s in sessions:
-            out.append(f"- {s['date']}: {s['title']}  →  [[{s['rel']}]]")
-        out.append("")
+    # Recent sessions in global vault (only when no project vault)
+    if not project_vault:
+        sessions = recent_sessions(vault, project_dir.name, slug)
+        if sessions:
+            out += ["## Bu Projeye Ait Son Sessionlar", ""]
+            for s in sessions:
+                out.append(f"- {s['date']}: {s['title']}  →  [[{s['rel']}]]")
+            out.append("")
 
     # Pending ingest
     n = pending_count(vault)
@@ -272,14 +322,25 @@ def main() -> None:
         out += [update_notice, ""]
 
     # Instruction
-    out += [
-        "---",
-        "**VAULT KULLANIM TALİMATI:** Kodlama görevine başlamadan önce yukarıdaki",
-        "haritadan ilgili `decisions/` ve `lessons/` sayfalarını `Read` ile yükle.",
-        "Geçmiş kararlar ve dersler yeniden keşfedilmesi gereken bilgiler değildir.",
-        "",
-        "</vault-context>",
-    ]
+    if project_vault:
+        out += [
+            "---",
+            "**VAULT KULLANIM TALİMATI:** Kodlama görevine başlamadan önce:",
+            f"1. Proje vault'undan (`docs/vault/`) ilgili `decisions/` ve `bugs/` sayfalarını `Read` ile yükle.",
+            "2. Global vault'tan (`~/claude-vault/`) ilgili `decisions/` ve `lessons/` sayfalarını yükle.",
+            "Geçmiş kararlar ve dersler yeniden keşfedilmesi gereken bilgiler değildir.",
+            "",
+            "</vault-context>",
+        ]
+    else:
+        out += [
+            "---",
+            "**VAULT KULLANIM TALİMATI:** Kodlama görevine başlamadan önce yukarıdaki",
+            "haritadan ilgili `decisions/` ve `lessons/` sayfalarını `Read` ile yükle.",
+            "Geçmiş kararlar ve dersler yeniden keşfedilmesi gereken bilgiler değildir.",
+            "",
+            "</vault-context>",
+        ]
 
     print("\n".join(out))
 
