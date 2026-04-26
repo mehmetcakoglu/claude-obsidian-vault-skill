@@ -24,7 +24,8 @@ shared session-ID registry. See [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md).
 | `scan-sessions.py` | Scans `~/.claude/projects/*/*.jsonl` and writes a sorted queue (cross-platform Python) |
 | `vault-context.py` | Injects vault context (index + project entity + recent sessions) into Claude at session start |
 | `*.sh` / `*.ps1` | Thin wrappers that call the Python scripts (Unix / Windows) |
-| Global vault skeleton | Lives at `~/claude-vault/` (configurable via `$CLAUDE_VAULT`) |
+| Global vault skeleton | Lives at `~/Global Claude Vault/` (configurable via `$CLAUDE_VAULT`) |
+| Token logging | Logs injected char/token count to `{vault}/state/token-log.txt` at every session start |
 | `SessionStart` hook | Injects vault context synchronously on every new conversation |
 | Auto-update check | Checks GitHub for a newer version once per day; shows a one-line notice if available (silent on network failure) |
 
@@ -41,7 +42,7 @@ Inside Claude Code:
 
 That's it. The plugin brings the skill, the three slash commands
 (`/vault:init`, `/vault:scan`, `/vault:ingest`), and the `SessionStart` hook
-with it. On first launch the hook seeds `~/claude-vault/` from the plugin's
+with it. On first launch the hook seeds `~/Global Claude Vault/` from the plugin's
 bundled templates if it doesn't exist yet.
 
 Custom vault location:
@@ -66,7 +67,7 @@ The installer is idempotent — rerun it any time to update the skill/commands.
 It:
 - Copies the skill to `~/.claude/skills/vault/`
 - Copies the slash commands to `~/.claude/commands/vault/`
-- Seeds `~/claude-vault/` with CLAUDE.md, index.md, log.md, .gitignore, and
+- Seeds `~/Global Claude Vault/` with CLAUDE.md, index.md, log.md, .gitignore, and
   the scan script (won't overwrite existing files)
 - Patches `~/.claude/settings.json` to register the SessionStart hook (safe:
   normalizes paths and deduplicates)
@@ -142,7 +143,7 @@ dead `related_code` paths, duplicate entities → a report at
                             │   ├─ auto-creates project entity
                             │   └─ injects context → Claude system-reminder
                             ▼
-               ~/claude-vault/state/pending.md   (queue)
+               ~/Global Claude Vault/state/pending.md   (queue)
                             │
                             │ /vault:ingest (user-triggered)
                             ▼
@@ -150,7 +151,7 @@ dead `related_code` paths, duplicate entities → a report at
         │                                             │
         ▼                                             ▼
   Global vault                              Project vault
-  ~/claude-vault/                           <repo>/docs/vault/
+  ~/Global Claude Vault/                    <repo>/docs/vault/
   • cross-project decisions                 • domain rules
   • Claude Code patterns                    • architectural decisions
   • tool lessons                            • bug/fix history
@@ -158,11 +159,13 @@ dead `related_code` paths, duplicate entities → a report at
         │                                             │
         └──────────────► shared ingested.txt ◄────────┘
              (a session is never ingested twice)
+
+  Token injection is logged to ~/Global Claude Vault/state/token-log.txt
 ```
 
 ## Configuration
 
-`~/claude-vault/vault-config.json` controls optional behaviors. The file is
+`~/Global Claude Vault/vault-config.json` controls optional behaviors. The file is
 seeded by the installer with safe defaults (all features off):
 
 ```jsonc
@@ -190,20 +193,20 @@ Flip the flag any time — the next session picks it up:
 ```bash
 # enable
 python3 -c "
-import json; from pathlib import Path
-p = Path.home() / 'claude-vault' / 'vault-config.json'
+import json, os; from pathlib import Path
+p = Path(os.environ.get('CLAUDE_VAULT', str(Path.home() / 'Global Claude Vault'))) / 'vault-config.json'
 d = json.loads(p.read_text()); d['auto_ingest'] = True; p.write_text(json.dumps(d, indent=2))
 "
 
 # disable
 python3 -c "
-import json; from pathlib import Path
-p = Path.home() / 'claude-vault' / 'vault-config.json'
+import json, os; from pathlib import Path
+p = Path(os.environ.get('CLAUDE_VAULT', str(Path.home() / 'Global Claude Vault'))) / 'vault-config.json'
 d = json.loads(p.read_text()); d['auto_ingest'] = False; p.write_text(json.dumps(d, indent=2))
 "
 ```
 
-Or just open `~/claude-vault/vault-config.json` in any editor.
+Or just open `~/Global Claude Vault/vault-config.json` in any editor.
 
 ### Auto-update check
 
@@ -216,7 +219,20 @@ release is available, a one-line notice appears in the vault context:
 ```
 
 The check is skipped when the network is unavailable and never blocks startup.
-The last-check date is stored in `~/claude-vault/state/update-check.txt`.
+The last-check date is stored in `{vault}/state/update-check.txt`.
+
+## Token usage logging
+
+At every session start, `vault-context.py` logs the amount of context injected
+into Claude to `{vault}/state/token-log.txt`:
+
+```
+2026-04-26 21:00   5430 chars   ~1357 tokens   Personal-Finance-Tracker
+2026-04-27 09:15   5201 chars   ~1300 tokens   filarch-ai
+```
+
+Token estimate uses 1 token ≈ 4 characters (conservative for mixed Turkish/English text).
+The log is append-only; inspect it any time to understand your average injection cost.
 
 ## Philosophy: semi-automatic
 
@@ -245,7 +261,7 @@ logic runs; the only difference is who initiates each call.
 
 ### Windows manual setup (PowerShell)
 
-1. Copy `plugins/vault/scripts/` to `%USERPROFILE%\claude-vault\scripts\`
+1. Copy `plugins/vault/scripts/` to `%USERPROFILE%\Global Claude Vault\scripts\`
 2. Copy `plugins/vault/commands/` to `%USERPROFILE%\.claude\commands\vault\`
 3. Copy `plugins/vault/skills/vault/SKILL.md` to `%USERPROFILE%\.claude\skills\vault\SKILL.md`
 4. Add to `%USERPROFILE%\.claude\settings.json` → `hooks.SessionStart`:
@@ -255,7 +271,7 @@ logic runs; the only difference is who initiates each call.
   "matcher": "",
   "hooks": [{
     "type": "command",
-    "command": "python -c \"import pathlib,subprocess,sys; p=pathlib.Path.home()/'claude-vault'/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None\"",
+    "command": "python -c \"import pathlib,subprocess,sys,os; p=pathlib.Path(os.environ.get('CLAUDE_VAULT', str(pathlib.Path.home()/'Global Claude Vault')))/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None\"",
     "timeout": 30
   }]
 }

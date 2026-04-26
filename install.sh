@@ -17,7 +17,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
-VAULT_HOME="${CLAUDE_VAULT:-$HOME/claude-vault}"
+VAULT_HOME="${CLAUDE_VAULT:-$HOME/Global Claude Vault}"
 
 PLUGIN_SRC="$REPO_ROOT/plugins/vault"
 SKILL_SRC="$PLUGIN_SRC/skills/vault"
@@ -132,10 +132,10 @@ for entry in session_hooks:
         updated.append({**entry, "hooks": filtered})
 session_hooks[:] = updated
 
-# Build cross-platform hook command using pathlib (no shell expansion needed)
+# Build cross-platform hook command using CLAUDE_VAULT env var with fallback
 hook_cmd = (
-    f'{python_exe} -c "import pathlib,subprocess,sys; '
-    f"p=pathlib.Path('{vault_home}')/'scripts'/'vault-context.py'; "
+    f'{python_exe} -c "import pathlib,subprocess,sys,os; '
+    f"p=pathlib.Path(os.environ.get('CLAUDE_VAULT','{vault_home}'))/'scripts'/'vault-context.py'; "
     f'subprocess.run([sys.executable,str(p)]) if p.exists() else None"'
 )
 

@@ -10,39 +10,57 @@ What it does:
   2. Auto-creates a project entity if none exists for the current project
   3. Outputs: index.md + project entity + recent project sessions + pending count
   4. Appends an explicit instruction for Claude to read relevant vault pages
-  5. If vault-config.json has auto_ingest=true, instructs Claude to process the
+  5. Logs injected token estimate to {vault}/state/token-log.txt
+  6. If vault-config.json has auto_ingest=true, instructs Claude to process the
      pending queue automatically before responding to the first user message
 
 Usage (in ~/.claude/settings.json):
     macOS / Linux:
-        python3 -c "import pathlib,subprocess,sys; p=pathlib.Path.home()/'claude-vault'/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None"
+        python3 -c "import pathlib,subprocess,sys,os; p=pathlib.Path(os.environ.get('CLAUDE_VAULT', str(pathlib.Path.home()/'Global Claude Vault')))/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None"
     Windows (replace python3 with python if needed):
-        python -c "import pathlib,subprocess,sys; p=pathlib.Path.home()/'claude-vault'/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None"
+        python -c "import pathlib,subprocess,sys,os; p=pathlib.Path(os.environ.get('CLAUDE_VAULT', str(pathlib.Path.home()/'Global Claude Vault')))/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None"
+
+Environment variables:
+    CLAUDE_VAULT        Override global vault directory (default: ~/Global Claude Vault)
+    CLAUDE_PROJECT_DIR  Override project directory (default: cwd)
 """
 
 import json
 import os
 import re
 import sys
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
-__version__ = "0.3.3"
+__version__ = "0.3.4"
 _UPDATE_URL = (
     "https://raw.githubusercontent.com/mehmetcakoglu/"
     "claude-obsidian-vault-skill/main/plugins/vault/.claude-plugin/plugin.json"
 )
 
+# Maximum characters to inject per index.md to avoid bloating context window.
+_MAX_INDEX_CHARS = 6000
+# Maximum characters for a single entity file injection.
+_MAX_ENTITY_CHARS = 3000
+
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def get_vault() -> Path:
-    return Path(os.environ.get("CLAUDE_VAULT", Path.home() / "claude-vault"))
+    return Path(os.environ.get("CLAUDE_VAULT", Path.home() / "Global Claude Vault"))
 
 
 def get_project_dir() -> Path:
     raw = os.environ.get("CLAUDE_PROJECT_DIR", "")
     return Path(raw) if raw else Path.cwd()
+
+
+def vault_display_path(vault: Path) -> str:
+    """Return ~/... form when vault is inside home dir, else absolute."""
+    try:
+        return "~/" + vault.relative_to(Path.home()).as_posix()
+    except ValueError:
+        return str(vault)
 
 
 def slugify(name: str) -> str:
@@ -76,6 +94,14 @@ def frontmatter_field(path: Path, field: str) -> str:
     except OSError:
         pass
     return ""
+
+
+def truncate(text: str, max_chars: int, label: str = "") -> str:
+    """Truncate text with a clear marker so Claude knows content was cut."""
+    if len(text) <= max_chars:
+        return text
+    suffix = f"\n\n… _(içerik kesildi — {label} {len(text)} karakter, limit {max_chars})_"
+    return text[:max_chars] + suffix
 
 
 # ── project vault detection ───────────────────────────────────────────────────
@@ -239,6 +265,28 @@ def pending_count(vault: Path) -> int:
                if re.match(r"^\| [0-9]", line))
 
 
+# ── token logging ─────────────────────────────────────────────────────────────
+
+def log_token_usage(vault: Path, char_count: int) -> None:
+    """
+    Append a one-line entry to {vault}/state/token-log.txt.
+    Estimate: 1 token ≈ 4 characters (conservative for mixed TR/EN text).
+    """
+    token_estimate = char_count // 4
+    log_file = vault / "state" / "token-log.txt"
+    try:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+        project = os.environ.get("CLAUDE_PROJECT_DIR", str(Path.cwd().name))
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(
+                f"{timestamp}\t{char_count:>7} chars\t~{token_estimate:>5} tokens"
+                f"\t{Path(project).name}\n"
+            )
+    except OSError:
+        pass  # Never crash on logging failure
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -249,6 +297,7 @@ def main() -> None:
     project_dir   = get_project_dir()
     slug          = slugify(project_dir.name)
     project_vault = get_project_vault(project_dir)
+    vault_disp    = vault_display_path(vault)
 
     run_scan(vault)
     entity_file = ensure_entity(vault, project_dir)
@@ -259,14 +308,19 @@ def main() -> None:
 
     out: list[str] = ["<vault-context>", ""]
 
-    # ── Project vault (docs/vault/) — injected first when present ────────────
+    # ── Project vault (docs/<vault-name>/) — injected first when present ─────
     if project_vault:
         pv_index = project_vault / "index.md"
         if pv_index.exists():
+            pv_index_text = truncate(
+                pv_index.read_text(encoding="utf-8").rstrip(),
+                _MAX_INDEX_CHARS,
+                label="proje vault index",
+            )
             out += [
                 f"## Proje Vault İçerik Haritası ({project_dir.name})",
                 "",
-                pv_index.read_text(encoding="utf-8").rstrip(),
+                pv_index_text,
                 "",
             ]
         pv_sessions = recent_project_vault_sessions(project_vault)
@@ -279,12 +333,21 @@ def main() -> None:
     # ── Global vault ─────────────────────────────────────────────────────────
     index = vault / "index.md"
     if index.exists():
-        out += ["## Global Vault İçerik Haritası", "", index.read_text(encoding="utf-8").rstrip(), ""]
+        global_index_text = truncate(
+            index.read_text(encoding="utf-8").rstrip(),
+            _MAX_INDEX_CHARS,
+            label="global vault index",
+        )
+        out += ["## Global Vault İçerik Haritası", "", global_index_text, ""]
 
     # Project entity (global vault, only when no project vault)
     if entity_file and entity_file.exists():
-        out += [f"## Aktif Proje: {project_dir.name}", "",
-                entity_file.read_text(encoding="utf-8").rstrip(), ""]
+        entity_text = truncate(
+            entity_file.read_text(encoding="utf-8").rstrip(),
+            _MAX_ENTITY_CHARS,
+            label="entity",
+        )
+        out += [f"## Aktif Proje: {project_dir.name}", "", entity_text, ""]
 
     # Recent sessions in global vault (only when no project vault)
     if not project_vault:
@@ -323,11 +386,12 @@ def main() -> None:
 
     # Instruction
     if project_vault:
+        pv_disp = vault_display_path(project_vault)
         out += [
             "---",
             "**VAULT KULLANIM TALİMATI:** Kodlama görevine başlamadan önce:",
-            f"1. Proje vault'undan (`docs/vault/`) ilgili `decisions/` ve `bugs/` sayfalarını `Read` ile yükle.",
-            "2. Global vault'tan (`~/claude-vault/`) ilgili `decisions/` ve `lessons/` sayfalarını yükle.",
+            f"1. Proje vault'undan (`{pv_disp}`) ilgili `decisions/` ve `bugs/` sayfalarını `Read` ile yükle.",
+            f"2. Global vault'tan (`{vault_disp}/`) ilgili `decisions/` ve `lessons/` sayfalarını yükle.",
             "Geçmiş kararlar ve dersler yeniden keşfedilmesi gereken bilgiler değildir.",
             "",
             "</vault-context>",
@@ -336,13 +400,15 @@ def main() -> None:
         out += [
             "---",
             "**VAULT KULLANIM TALİMATI:** Kodlama görevine başlamadan önce yukarıdaki",
-            "haritadan ilgili `decisions/` ve `lessons/` sayfalarını `Read` ile yükle.",
+            f"haritadan (`{vault_disp}/`) ilgili `decisions/` ve `lessons/` sayfalarını `Read` ile yükle.",
             "Geçmiş kararlar ve dersler yeniden keşfedilmesi gereken bilgiler değildir.",
             "",
             "</vault-context>",
         ]
 
-    print("\n".join(out))
+    output_text = "\n".join(out)
+    print(output_text)
+    log_token_usage(vault, len(output_text))
 
 
 if __name__ == "__main__":
