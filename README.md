@@ -40,10 +40,19 @@ Inside Claude Code:
 /plugin install vault@claude-obsidian-vault-skill
 ```
 
-That's it. The plugin brings the skill, the three slash commands
-(`/vault:init`, `/vault:scan`, `/vault:ingest`), and the `SessionStart` hook
-with it. On first launch the hook seeds `~/Global Claude Vault/` from the plugin's
-bundled templates if it doesn't exist yet.
+Then **restart your Claude Code session** so the `SessionStart` hook takes effect.
+
+> **Why type the commands?** The Claude Code plugin marketplace does not have a
+> public browse/search UI yet. Plugins are installed by adding the GitHub-hosted
+> marketplace explicitly (the first command) and then installing by name (the second).
+> The plugin submission at `claude.ai/settings/plugins/submissions` is a separate
+> Anthropic review process and does not automatically surface the plugin in any
+> discoverable list.
+
+That's it. The plugin brings the skill, the slash commands
+(`/vault:init`, `/vault:scan`, `/vault:ingest`, `/vault:batch-ingest`), and the
+`SessionStart` hook with it. On first launch the hook seeds `~/Global Claude Vault/`
+from the plugin's bundled templates if it doesn't exist yet.
 
 Custom vault location:
 
