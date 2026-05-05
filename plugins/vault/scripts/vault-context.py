@@ -32,7 +32,7 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
-__version__ = "0.3.4"
+__version__ = "0.3.5"
 _UPDATE_URL = (
     "https://raw.githubusercontent.com/mehmetcakoglu/"
     "claude-obsidian-vault-skill/main/plugins/vault/.claude-plugin/plugin.json"
@@ -219,6 +219,186 @@ def recent_project_vault_sessions(project_vault: Path, limit: int = 3) -> list[d
     return results
 
 
+# ── global vault bootstrap ────────────────────────────────────────────────────
+
+_GITIGNORE = """\
+# Raw Claude Code JSONL sessions are not committed
+raw/sessions/*.jsonl
+raw/sessions/*.symlink
+
+# OS
+.DS_Store
+
+# Obsidian workspace (personal)
+.obsidian/workspace*
+.obsidian/graph.json
+"""
+
+_VAULT_CONFIG = """\
+{
+  "_comment": "Vault configuration — https://github.com/mehmetcakoglu/claude-obsidian-vault-skill",
+  "auto_ingest": false,
+  "auto_ingest_max_per_session": 5
+}
+"""
+
+_INDEX_MD = """\
+---
+title: Global vault index
+date: {today}
+status: active
+---
+
+# Global Vault — Index
+
+_Last updated: {today}_
+_Ingests: 0_
+
+## Sessions
+
+## Decisions
+
+## Concepts
+
+## Entities
+
+## Lessons
+
+## Syntheses
+
+## Archive
+"""
+
+_LOG_MD = """\
+# Olay Kaydı (log.md)
+
+> Append-only, zaman damgalı olay kaydı.
+>
+> **Format:** `## [YYYY-MM-DD] <tip> | <slug>`
+>
+> **Tipler:** `ingest`, `query`, `lint`, `schema`
+
+---
+
+## [{today}] schema | vault-bootstrap
+
+- Global vault otomatik oluşturuldu (vault-context.py v{version})
+- Kaynak: SessionStart hook (plugin kurulumu)
+"""
+
+_CLAUDE_MD_STUB = """\
+# Global Claude Vault — Constitution
+
+This file governs how Claude Code agents ingest, query, and maintain pages in the global vault.
+
+## 1. Scope
+
+Cross-project, domain-agnostic knowledge:
+- Claude Code patterns (hooks, skills, slash commands, MCP servers)
+- General workflows (git, CI, testing, tooling)
+- Personal style and collaboration preferences
+- Reusable concepts that apply to more than one project
+
+## 2. Out of scope
+
+- Project-specific architecture, domain rules, entities, bugs → project `docs/vault/`
+- NDA or confidential material
+- Ephemeral state → TodoWrite / plan mode
+- Runtime instructions → `~/.claude/CLAUDE.md`
+
+## 3. Directory layout
+
+| Directory | Content |
+|---|---|
+| `sources/sessions/` | One summary page per Claude Code session |
+| `decisions/` | Cross-project architectural decisions |
+| `entities/` | Tools, services, frameworks used across projects |
+| `concepts/` | Domain-agnostic patterns and ideas |
+| `lessons/` | Failure stories: symptom → root cause → fix |
+| `syntheses/` | Filed-back answers, lint reports |
+| `archive/` | Superseded pages (never deleted) |
+| `state/` | pending.md, ingested.txt, token-log.txt, update-check.txt |
+| `scripts/` | vault-context.py, scan-sessions.py |
+
+## 4. INGEST workflow
+
+When importing a session:
+1. Parse with ctx_execute (never Read multi-MB transcripts)
+2. Write sources/sessions/YYYY-MM-DD-<slug>.md
+3. Add decisions/, lessons/, entities/, concepts/ pages where warranted
+4. Update index.md and log.md
+5. Append session ID to state/ingested.txt
+6. Commit with `docs(vault):` prefix
+
+## 5. Hard rules
+
+1. No sourceless claims — every page has `source` frontmatter
+2. No deletions — move to archive/
+3. No secrets (API keys, passwords, IPs) — use placeholders
+4. index.md updated on every ingest/lint
+5. File names: kebab-case ASCII only
+"""
+
+
+def bootstrap_vault(vault: Path) -> None:
+    """Create a minimal global vault skeleton when the directory does not exist."""
+    today = date.today().isoformat()
+
+    dirs = [
+        vault / "sources" / "sessions",
+        vault / "decisions",
+        vault / "entities",
+        vault / "concepts",
+        vault / "lessons",
+        vault / "syntheses",
+        vault / "archive",
+        vault / "raw" / "sessions",
+        vault / "raw" / "docs",
+        vault / "scripts",
+        vault / "state",
+    ]
+    for d in dirs:
+        d.mkdir(parents=True, exist_ok=True)
+
+    files = {
+        vault / ".gitignore":        _GITIGNORE,
+        vault / "vault-config.json": _VAULT_CONFIG,
+        vault / "CLAUDE.md":         _CLAUDE_MD_STUB,
+        vault / "index.md":          _INDEX_MD.format(today=today),
+        vault / "log.md":            _LOG_MD.format(today=today, version=__version__),
+        vault / "state" / "ingested.txt": "",
+    }
+    for path, content in files.items():
+        if not path.exists():
+            path.write_text(content, encoding="utf-8")
+
+    # git init (best-effort — skip if git unavailable)
+    try:
+        import subprocess
+        subprocess.run(
+            ["git", "init", "-q", str(vault)],
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(vault), "add", "."],
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(vault), "commit", "-qm",
+             f"chore(vault): bootstrap global vault (vault-context.py v{__version__})"],
+            capture_output=True,
+        )
+    except Exception:
+        pass  # git is optional
+
+    print(
+        f"[vault] Global vault created at '{vault}'. "
+        f"Run /vault:init inside a project to set up a project vault.",
+        file=sys.stderr,
+    )
+
+
 # ── config ────────────────────────────────────────────────────────────────────
 
 def read_config(vault: Path) -> dict:
@@ -297,12 +477,7 @@ def log_token_usage(vault: Path, char_count: int) -> None:
 def main() -> None:
     vault = get_vault()
     if not vault.exists():
-        print(
-            f"[vault] WARN: vault directory not found at '{vault}'. "
-            f"Run ./install.sh to set it up, or set the CLAUDE_VAULT environment variable.",
-            file=sys.stderr,
-        )
-        return
+        bootstrap_vault(vault)
 
     project_dir   = get_project_dir()
     slug          = slugify(project_dir.name)

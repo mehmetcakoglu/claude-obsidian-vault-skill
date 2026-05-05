@@ -62,6 +62,8 @@ $env:CLAUDE_VAULT = "D:\my-vault"; .\install.ps1  # Windows
 
 After a standalone install, **restart your Claude Code session** for the `SessionStart` hook to activate.
 
+> **Plugin install (Option A):** The global vault (`~/Global Claude Vault/`) is created automatically on the first session start — no extra step needed.
+
 ---
 
 ## First-time setup (5 minutes)

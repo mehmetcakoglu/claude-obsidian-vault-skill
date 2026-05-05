@@ -62,6 +62,8 @@ $env:CLAUDE_VAULT = "D:\vault"; .\install.ps1     # Windows
 
 Bağımsız kurulumdan sonra `SessionStart` hook'unun aktif olması için **Claude Code oturumunu yeniden başlat**.
 
+> **Plugin kurulumu (Seçenek A):** Global vault (`~/Global Claude Vault/`) ilk oturum başlangıcında otomatik oluşturulur — ekstra adım gerekmez.
+
 ---
 
 ## İlk kurulum (5 dakika)

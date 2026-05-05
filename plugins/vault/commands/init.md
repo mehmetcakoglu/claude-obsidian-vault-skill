@@ -12,6 +12,20 @@ Bootstrap `docs/vault/` in a project: create the directory skeleton, write a cus
 
 - `$1` — optional project root path. If omitted, use `pwd` as the project root.
 
+## 0. Global vault pre-flight
+
+Before touching the project, check that the global vault exists:
+
+```
+GLOBAL_VAULT=${CLAUDE_VAULT:-$HOME/Global Claude Vault}
+```
+
+- If `$GLOBAL_VAULT` **does not exist**: tell the user:
+  > "Global vault not found at `$GLOBAL_VAULT`. Starting a new Claude Code session will create it automatically (SessionStart hook). If you installed via standalone, run `./install.sh` first."
+  Then stop — do not proceed to project vault setup until the global vault is in place.
+
+- If `$GLOBAL_VAULT` exists but is missing key files (`CLAUDE.md`, `index.md`): warn and continue.
+
 ## 1. Discovery (automatic)
 
 1. Determine the project root:
