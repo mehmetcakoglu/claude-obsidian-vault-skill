@@ -118,12 +118,16 @@ def get_project_vault(project_dir: Path) -> Path | None:
 
 def run_scan(vault: Path) -> None:
     scanner = vault / "scripts" / "scan-sessions.py"
-    if scanner.exists():
-        import subprocess
-        subprocess.run(
-            [sys.executable, str(scanner), "--quiet"],
-            capture_output=True,
-        )
+    if not scanner.exists():
+        return
+    import subprocess
+    result = subprocess.run(
+        [sys.executable, str(scanner), "--quiet"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0 and result.stderr:
+        print(f"[vault] WARN: scan-sessions.py exited {result.returncode}: {result.stderr.strip()}", file=sys.stderr)
 
 
 # ── entity auto-create ────────────────────────────────────────────────────────
@@ -223,7 +227,8 @@ def read_config(vault: Path) -> dict:
         return {}
     try:
         return json.loads(cfg_file.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as exc:
+        print(f"[vault] WARN: could not parse vault-config.json: {exc}", file=sys.stderr)
         return {}
 
 
@@ -292,6 +297,11 @@ def log_token_usage(vault: Path, char_count: int) -> None:
 def main() -> None:
     vault = get_vault()
     if not vault.exists():
+        print(
+            f"[vault] WARN: vault directory not found at '{vault}'. "
+            f"Run ./install.sh to set it up, or set the CLAUDE_VAULT environment variable.",
+            file=sys.stderr,
+        )
         return
 
     project_dir   = get_project_dir()

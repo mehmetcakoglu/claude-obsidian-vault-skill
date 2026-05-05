@@ -1,70 +1,39 @@
 # Claude Obsidian Vault Skill
 
-> A hybrid, Obsidian-compatible knowledge vault for [Claude Code](https://docs.claude.com/en/docs/claude-code).
-> Archives sessions, decisions, bugs, concepts, and entities into a persistent
-> markdown wiki — split between a **global** vault (cross-project knowledge) and
-> **per-project** vaults (project-specific knowledge).
+**English** | [Türkçe](README.tr.md)
 
-Built on the **LLM-Wiki pattern** (`RAW → WIKI ← SCHEMA`) introduced by
-[Selma Kocabıyık](https://github.com/selmakcby) in her
-[knowledge-pipeline](https://github.com/selmakcby/knowledge-pipeline) repo.
-This project adds Claude Code-specific packaging: slash commands,
-auto-scanning of session transcripts, hybrid global/project scoping, and a
-shared session-ID registry. See [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md).
+> Give Claude Code a persistent memory. Every session is archived into a searchable markdown wiki — so past decisions, bugs, and patterns are always in context, never re-explained.
 
-## What you get
+---
 
-| Piece | What it does |
-|---|---|
-| `/vault:init` slash command | Bootstraps `docs/vault/` for the current project, asks a few questions, fills in a CLAUDE.md template |
-| `/vault:scan` slash command | Refreshes the pending-ingest queue (also runs automatically at session start) |
-| `/vault:ingest` slash command | Processes the next pending Claude Code session into the appropriate vault |
-| `/vault:batch-ingest [N]` slash command | Processes up to N pending sessions in one run (default 5, pass `all` for the full queue) |
-| `vault` skill | Auto-activates whenever you mention archiving, prior decisions, bugs, or past sessions |
-| `scan-sessions.py` | Scans `~/.claude/projects/*/*.jsonl` and writes a sorted queue (cross-platform Python) |
-| `vault-context.py` | Injects vault context (index + project entity + recent sessions) into Claude at session start |
-| `*.sh` / `*.ps1` | Thin wrappers that call the Python scripts (Unix / Windows) |
-| Global vault skeleton | Lives at `~/Global Claude Vault/` (configurable via `$CLAUDE_VAULT`) |
-| Token logging | Logs injected char/token count to `{vault}/state/token-log.txt` at every session start |
-| `SessionStart` hook | Injects vault context synchronously on every new conversation |
-| Auto-update check | Checks GitHub for a newer version once per day; shows a one-line notice if available (silent on network failure) |
+## Why bother?
+
+Without a vault, every Claude Code session starts from zero. You re-explain the same architectural decisions, Claude rediscovers bugs you already fixed, and patterns from three months ago are as invisible as if they never happened.
+
+With a vault:
+
+- **Past decisions are in context before your first message** — Claude reads them automatically at session start
+- **Bugs stay fixed** — root causes and fixes are recorded and surfaced
+- **Knowledge compounds** — every session makes the next one better
+
+---
 
 ## Install
 
+Pick one method. Both install the same skill, commands, and hook.
+
 ### Option A — Claude Code plugin (recommended)
 
-Inside Claude Code:
+Type these two commands inside Claude Code:
 
 ```
 /plugin marketplace add mehmetcakoglu/claude-obsidian-vault-skill
 /plugin install vault@claude-obsidian-vault-skill
 ```
 
-Then **restart your Claude Code session** so the `SessionStart` hook takes effect.
+Then **restart your Claude Code session**.
 
-> **Why type the commands?** The Claude Code plugin marketplace does not have a
-> public browse/search UI yet. Plugins are installed by adding the GitHub-hosted
-> marketplace explicitly (the first command) and then installing by name (the second).
-> The plugin submission at `claude.ai/settings/plugins/submissions` is a separate
-> Anthropic review process and does not automatically surface the plugin in any
-> discoverable list.
-
-That's it. The plugin brings the skill, the slash commands
-(`/vault:init`, `/vault:scan`, `/vault:ingest`, `/vault:batch-ingest`), and the
-`SessionStart` hook with it. On first launch the hook seeds `~/Global Claude Vault/`
-from the plugin's bundled templates if it doesn't exist yet.
-
-Custom vault location:
-
-```
-# in your shell profile (before starting Claude Code)
-export CLAUDE_VAULT=/some/other/path
-```
-
-### Option B — Standalone install (no plugin system)
-
-Use this if you want a git-managed copy on disk instead of going through the
-plugin system:
+### Option B — Standalone (macOS / Linux)
 
 ```bash
 git clone https://github.com/mehmetcakoglu/claude-obsidian-vault-skill.git
@@ -72,287 +41,181 @@ cd claude-obsidian-vault-skill
 ./install.sh
 ```
 
-The installer is idempotent — rerun it any time to update the skill/commands.
-It:
-- Copies the skill to `~/.claude/skills/vault/`
-- Copies the slash commands to `~/.claude/commands/vault/`
-- Seeds `~/Global Claude Vault/` with CLAUDE.md, index.md, log.md, .gitignore, and
-  the scan script (won't overwrite existing files)
-- Patches `~/.claude/settings.json` to register the SessionStart hook (safe:
-  normalizes paths and deduplicates)
-- `git init`s the global vault if it isn't a repo yet
+### Option C — Standalone (Windows PowerShell)
 
-Custom vault location:
+```powershell
+git clone https://github.com/mehmetcakoglu/claude-obsidian-vault-skill.git
+cd claude-obsidian-vault-skill
+.\install.ps1
+```
+
+> **Requires Python 3** in PATH on all platforms.
+
+**Custom vault location** — set `CLAUDE_VAULT` before installing:
 
 ```bash
-CLAUDE_VAULT=/some/other/path ./install.sh
+CLAUDE_VAULT=/my/path ./install.sh          # macOS / Linux
+$env:CLAUDE_VAULT = "D:\my-vault"; .\install.ps1  # Windows
 ```
 
-## Usage
+After a standalone install, **restart your Claude Code session** for the `SessionStart` hook to activate.
 
-### In a new project
+---
 
+## First-time setup (5 minutes)
+
+**1. Verify the install**
+
+In a new Claude Code session, run:
 ```
-cd my-project/
-# inside Claude Code:
+/vault:status
+```
+You should see your vault path, plugin version, and config — all green. If anything is wrong, it tells you what to fix.
+
+**2. Bootstrap a project vault** _(optional but recommended)_
+
+Navigate to a project and run:
+```
 /vault:init
 ```
+Claude asks 5 quick questions (project name, stack, domain terms) and creates `docs/vault/` with a customized knowledge schema. Do this once per project.
 
-The command auto-detects your stack (Python/Node/Go/Rust/Ruby/Docker…) and asks
-a few clarifying questions. It then writes `docs/vault/` with a filled-in
-CLAUDE.md, index.md, log.md, and .gitignore.
-
-### Archiving a past session
-
-After any conversation ends (>10 min since last message), it shows up in the
-queue. To process it:
+**3. Archive your first session**
 
 ```
-/vault:scan            # optional — hook runs this automatically anyway
-/vault:ingest          # processes the next (biggest) session, writes pages, commits
-/vault:batch-ingest    # processes up to 5 sessions in one run (default limit)
-/vault:batch-ingest 3  # process at most 3 sessions
-/vault:batch-ingest all  # process the entire queue (careful on large queues)
+/vault:scan          # see what's waiting in the queue
+/vault:ingest        # archive the top session
 ```
 
-If the session belonged to a project that has `docs/vault/CLAUDE.md`, the pages
-go into the project vault. Otherwise they go to the global vault. The session
-ID lands in the shared `state/ingested.txt` registry either way.
+That's it. From here, the `SessionStart` hook scans automatically every time Claude Code starts. Just run `/vault:ingest` when you're ready to archive.
 
-> **Context window note:** each session adds a few KB to the active context.
-> For queues larger than 7, split into two `batch-ingest` runs or enable
-> `auto_ingest` to let the vault drain gradually across sessions.
+---
 
-### Asking questions (QUERY)
+## Commands
 
-Just ask. The skill activates on phrases like _"what did we decide about X"_,
-_"have we seen this bug before"_, _"why did we choose Y"_. It reads the right
-`index.md`, follows the links, and cites sources in its answer.
+| Command | What it does |
+|---|---|
+| `/vault:help` | Quick-reference card for all commands |
+| `/vault:status` | Health check — vault path, version, queue size, config |
+| `/vault:init` | Bootstrap `docs/vault/` for the current project |
+| `/vault:scan` | Refresh + display the pending-ingest queue |
+| `/vault:ingest [id]` | Archive the next (or a specific) pending session |
+| `/vault:batch-ingest [N\|all]` | Archive up to N sessions in one run (default 5) |
+| `/vault:skip <id>` | Permanently remove a session from the queue |
+| `/vault:auto-ingest [on\|off\|status]` | Toggle automatic archiving at session start |
+| `/vault:auto-ingest [on\|off] [max N]` | Also set the per-session maximum |
+| `/vault:update` | Pull latest version from GitHub and reinstall |
 
-### Vault hygiene (LINT)
+---
+
+## Everyday use
+
+### Archiving sessions
+
+Sessions appear in the queue ~10 minutes after they end. Process them whenever it suits you:
 
 ```
-# inside Claude Code:
+/vault:scan              # check the queue
+/vault:ingest            # archive one session (biggest first)
+/vault:batch-ingest 3    # archive up to 3 at once
+/vault:skip a1b2c3d4     # skip a session you don't want archived
+```
+
+Each ingested session is routed automatically:
+- If the project has `docs/vault/CLAUDE.md` → **project vault**
+- Otherwise → **global vault** at `~/Global Claude Vault/`
+
+### Asking questions
+
+Just ask naturally. The `vault` skill activates on phrases like:
+- _"what did we decide about X?"_
+- _"have we seen this bug before?"_
+- _"why did we choose Y?"_
+
+Claude reads the right `index.md`, follows the links, and cites its sources.
+
+### Vault hygiene
+
+```
 check the vault
 ```
 
-or `/vault:lint` if you've added that command. Orphan pages, stale claims,
-dead `related_code` paths, duplicate entities → a report at
-`syntheses/lint-YYYY-MM-DD.md`.
+Claude scans for orphan pages, stale claims, dead code references, and duplicate entities, then writes a report to `syntheses/lint-YYYY-MM-DD.md`.
 
-## Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                   ~/.claude/projects/*/*.jsonl                       │
-│             (raw Claude Code session transcripts)                    │
-└───────────────────────────┬──────────────────────────────────────────┘
-                            │ vault-context.py (SessionStart hook, sync)
-                            │   ├─ scans pending queue
-                            │   ├─ auto-creates project entity
-                            │   └─ injects context → Claude system-reminder
-                            ▼
-               ~/Global Claude Vault/state/pending.md   (queue)
-                            │
-                            │ /vault:ingest (user-triggered)
-                            ▼
-        ┌─────────────────────┴──────────────────────┐
-        │                                             │
-        ▼                                             ▼
-  Global vault                              Project vault
-  ~/Global Claude Vault/                    <repo>/docs/vault/
-  • cross-project decisions                 • domain rules
-  • Claude Code patterns                    • architectural decisions
-  • tool lessons                            • bug/fix history
-  • personal preferences                    • entities
-        │                                             │
-        └──────────────► shared ingested.txt ◄────────┘
-             (a session is never ingested twice)
-
-  Token injection is logged to ~/Global Claude Vault/state/token-log.txt
-```
+---
 
 ## Configuration
 
-`~/Global Claude Vault/vault-config.json` controls optional behaviors. The file is
-seeded by the installer with safe defaults (all features off):
-
-```jsonc
-{
-  "auto_ingest": false,           // set to true to enable automatic ingest
-  "auto_ingest_max_per_session": 5 // max sessions processed per session start
-}
-```
-
-### Auto-ingest
-
-When `auto_ingest` is `true`, `vault-context.py` injects a directive into the
-session context instructing Claude to run `/vault:ingest` (up to
-`auto_ingest_max_per_session` times) **before responding to the first user
-message**. This drains the pending queue automatically on each session start.
-
-**When to turn it on:** you don't care about reviewing each session summary
-before it's written, or your sessions are short/low-risk.
-
-**When to leave it off (default):** you want to approve each ingest, or you're
-working in a session where vault archiving would be a distraction.
-
-Flip the flag any time — the next session picks it up:
-
-```bash
-# enable
-python3 -c "
-import json, os; from pathlib import Path
-p = Path(os.environ.get('CLAUDE_VAULT', str(Path.home() / 'Global Claude Vault'))) / 'vault-config.json'
-d = json.loads(p.read_text()); d['auto_ingest'] = True; p.write_text(json.dumps(d, indent=2))
-"
-
-# disable
-python3 -c "
-import json, os; from pathlib import Path
-p = Path(os.environ.get('CLAUDE_VAULT', str(Path.home() / 'Global Claude Vault'))) / 'vault-config.json'
-d = json.loads(p.read_text()); d['auto_ingest'] = False; p.write_text(json.dumps(d, indent=2))
-"
-```
-
-Or just open `~/Global Claude Vault/vault-config.json` in any editor.
-
-### Auto-update check
-
-At session start, `vault-context.py` silently fetches the latest version from
-GitHub **once per day** and compares it to the installed version. If a newer
-release is available, a one-line notice appears in the vault context:
+Settings live in `~/Global Claude Vault/vault-config.json`. The easiest way to change them is via slash commands:
 
 ```
-⚠️  vault plugin update available: v0.3.1 → v0.3.2. Run `./install.sh` from the repo to update.
+/vault:auto-ingest status       # check current state
+/vault:auto-ingest on           # enable automatic archiving
+/vault:auto-ingest on max 3     # enable, process at most 3 sessions per start
+/vault:auto-ingest off          # disable (manual mode, the default)
 ```
 
-The check is skipped when the network is unavailable and never blocks startup.
-The last-check date is stored in `{vault}/state/update-check.txt`.
+**When to enable auto-ingest:** you trust Claude's judgment on what to archive and want zero maintenance.
 
-## Token usage logging
+**When to leave it off (default):** you want to review each session before it's written, or archiving would interrupt your flow.
 
-At every session start, `vault-context.py` logs the amount of context injected
-into Claude to `{vault}/state/token-log.txt`:
+---
 
-```
-2026-04-26 21:00   5430 chars   ~1357 tokens   Personal-Finance-Tracker
-2026-04-27 09:15   5201 chars   ~1300 tokens   filarch-ai
-```
-
-Token estimate uses 1 token ≈ 4 characters (conservative for mixed Turkish/English text).
-The log is append-only; inspect it any time to understand your average injection cost.
-
-## Token economics
-
-### The core tradeoff
-
-The vault adds a fixed **injection cost** at session start, and eliminates a
-variable **discovery cost** during the session.
+## How it works
 
 ```
-Without vault:
-  session start → 0 tokens from vault
-  per task      → Claude reads 3-10 files to understand context
-                → user re-explains past decisions
-                → Claude occasionally makes wrong calls (unknown history)
-  total         → high, unpredictable per session
-
-With vault:
-  session start → ~1,000–3,000 tokens injected (index + recent sessions)
-  per task      → past decisions already in context → fewer file reads
-                → no re-explanation
-                → fewer wrong turns
-  total         → predictable upfront cost, lower marginal cost per task
+~/.claude/projects/*/*.jsonl        (Claude Code session transcripts)
+          │
+          │  vault-context.py runs at every session start (synchronous)
+          │    ├─ scans the pending queue
+          │    ├─ auto-creates a project entity if none exists
+          │    └─ injects vault index + recent sessions → Claude context
+          ▼
+   ~/Global Claude Vault/state/pending.md
+          │
+          │  /vault:ingest (user-triggered, or automatic with auto_ingest=true)
+          ▼
+    ┌─────┴──────────────────────────────────┐
+    │                                        │
+    ▼                                        ▼
+Global vault                         Project vault
+~/Global Claude Vault/               <repo>/docs/vault/
+ · cross-project decisions            · domain-specific rules
+ · Claude Code patterns               · architectural decisions
+ · lessons learned                    · bug/fix history
+                                      · entities & concepts
+    │                                        │
+    └──────────── shared ingested.txt ───────┘
+           (a session is never archived twice)
 ```
 
-### Breakeven formula
+The scan and context injection happen automatically. Ingesting (writing pages) is user-triggered by default, because it filters secrets, decides routing, and writes permanent files — that deserves a human in the loop.
 
-The vault pays for itself within a session when:
-
-```
-vault_injection_tokens  <  Σ (files_read × avg_file_tokens) + user_explanation_tokens
-```
-
-In practice this means: **if a session involves ~2 or more questions that
-require past context, the vault is net-positive on tokens.**
-
-### Where savings are largest
-
-| Situation | Savings |
-|---|---|
-| Long-running project (many decisions, known bugs) | High |
-| Returning to a project after a gap | High |
-| Debugging a class of problems seen before | High |
-| Greenfield session, no history yet | None |
-| Single one-off task | Low |
-
-### The real value: avoiding wrong decisions
-
-Token math aside, the deeper benefit is **decision quality**. Without vault
-context, Claude may reproduce a pattern that was previously ruled out, reopen a
-bug that was fixed, or miss a constraint that was decided weeks ago. Correcting
-those mistakes costs more than any token delta. The vault makes past knowledge
-the default, not something that needs to be re-stated each session.
-
-## Philosophy: semi-automatic
-
-**Scan + context injection are automatic. Ingest is user-triggered by default.**
-
-At every session start, `vault-context.py` runs synchronously and:
-1. Refreshes the pending queue (cheap scan, non-destructive)
-2. Auto-creates a project entity if none exists
-3. Injects vault context into Claude as a `system-reminder` — past decisions
-   and lessons are available **before the first message**, no manual query
-
-Ingest stays user-triggered by default because it writes files, decides
-routing, and filters secrets — that deserves human review. With `auto_ingest`
-enabled, Claude processes the queue automatically but the same `/vault:ingest`
-logic runs; the only difference is who initiates each call.
+---
 
 ## Compatibility
 
-| Platform | Support |
+| Platform | Status |
 |---|---|
-| macOS | ✅ Full support |
-| Linux | ✅ Full support |
-| Windows (Git Bash / WSL) | ✅ Full support via `install.sh` |
-| Windows (PowerShell / cmd) | ✅ Use `.ps1` wrappers; add hook manually (see below) |
-| Claude.ai web / Claude Work | ❌ No local filesystem access |
+| macOS | Full support |
+| Linux | Full support |
+| Windows (Git Bash / WSL) | Full support via `install.sh` |
+| Windows (PowerShell) | Full support via `install.ps1` |
+| Claude.ai web / Claude Work | Not supported (no local filesystem) |
 
-### Windows manual setup (PowerShell)
-
-1. Copy `plugins/vault/scripts/` to `%USERPROFILE%\Global Claude Vault\scripts\`
-2. Copy `plugins/vault/commands/` to `%USERPROFILE%\.claude\commands\vault\`
-3. Copy `plugins/vault/skills/vault/SKILL.md` to `%USERPROFILE%\.claude\skills\vault\SKILL.md`
-4. Add to `%USERPROFILE%\.claude\settings.json` → `hooks.SessionStart`:
-
-```json
-{
-  "matcher": "",
-  "hooks": [{
-    "type": "command",
-    "command": "python -c \"import pathlib,subprocess,sys,os; p=pathlib.Path(os.environ.get('CLAUDE_VAULT', str(pathlib.Path.home()/'Global Claude Vault')))/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None\"",
-    "timeout": 30
-  }]
-}
-```
-
-> Replace `python` with `python3` if that's what's in your PATH.
-
-**Requires Python 3** in PATH on all platforms.
-
-## License
-
-MIT. See [`LICENSE`](LICENSE).
+---
 
 ## Credits
 
-- LLM-Wiki pattern (RAW → WIKI ← SCHEMA) and the INGEST/QUERY/LINT vocabulary:
-  **[Selma Kocabıyık](https://github.com/selmakcby)** — see
-  [knowledge-pipeline](https://github.com/selmakcby/knowledge-pipeline).
-- Claude Code packaging (auto-scan, slash commands, hybrid scoping, session
-  registry): **[Mehmet Çakoğlu](https://github.com/mehmetcakoglu)** — this
-  repository.
+Built on the **LLM-Wiki pattern** (`RAW → WIKI ← SCHEMA`) by
+[Selma Kocabıyık](https://github.com/selmakcby) —
+[knowledge-pipeline](https://github.com/selmakcby/knowledge-pipeline).
+
+Claude Code packaging (slash commands, auto-scan, hybrid scoping, session registry) by
+[Mehmet Çakoğlu](https://github.com/mehmetcakoglu).
 
 See [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md) for the full attribution.
+
+---
+
+MIT License — see [`LICENSE`](LICENSE).

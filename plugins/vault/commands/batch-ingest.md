@@ -15,14 +15,23 @@ Process multiple pending sessions from the ingest queue in a single command, cal
 
 ## Pre-flight
 
-1. Read `${CLAUDE_VAULT:-$HOME/claude-vault}/state/pending.md`.
+1. Read `${CLAUDE_VAULT:-$HOME/Global Claude Vault}/state/pending.md`.
    - If empty → say "Queue is empty. Nothing to ingest." and stop.
 2. Count the pending rows (`N_pending`).
 3. Resolve the limit:
    - `$1` is a number → `limit = min($1, N_pending)`
    - `$1` is `all` → `limit = N_pending`
    - `$1` omitted → read `vault-config.json`; fallback to 5
-4. Warn if `limit > 5`:
+4. **Confirmation gate for `all` or `limit > 7`**:
+   - If `$1` is `all` OR `limit > 7`, print a summary and ask for confirmation **before processing anything**:
+     > "About to process **N sessions** in one run. This will consume significant context window.
+     > Sessions: [list the first 5 slugs from pending.md, then '… and N more' if >5]
+     > Proceed? (yes / no — or reply with a lower number to process fewer)"
+   - If the user replies with a number, treat it as the new limit.
+   - If the user replies `no` or `n`, stop without processing anything.
+   - If the user replies `yes` or `y`, continue.
+   - For `limit ≤ 7` and no `all` flag, skip the confirmation prompt and proceed directly.
+5. Warn if `limit > 5`:
    > "Processing X sessions in one run. Context window pressure increases with each session — quality may degrade toward the end. Consider splitting into two runs if X > 7."
 
 ## Processing loop

@@ -55,10 +55,10 @@ say "Installed skill → $SKILL_DST/SKILL.md"
 
 # ---- 2. install slash commands ----
 mkdir -p "$CMD_DST"
-for f in init.md scan.md ingest.md batch-ingest.md auto-ingest.md update.md; do
-  cp -f "$CMD_SRC/$f" "$CMD_DST/$f"
+for f in init.md scan.md ingest.md batch-ingest.md auto-ingest.md update.md status.md help.md skip.md; do
+  [[ -f "$CMD_SRC/$f" ]] && cp -f "$CMD_SRC/$f" "$CMD_DST/$f"
 done
-say "Installed slash commands: /vault:init /vault:scan /vault:ingest /vault:batch-ingest /vault:auto-ingest /vault:update"
+say "Installed slash commands: /vault:init /vault:scan /vault:ingest /vault:batch-ingest /vault:auto-ingest /vault:update /vault:status /vault:help /vault:skip"
 
 # ---- 3. install global vault skeleton (do not overwrite existing files) ----
 mkdir -p "$VAULT_HOME"/{sources/sessions,sources/prompts,decisions,concepts,entities,lessons,syntheses,archive,raw,scripts,state}
@@ -163,3 +163,59 @@ say "  4. Run /vault:auto-ingest on|off to toggle automatic session processing."
 say "     Or check the current state with /vault:auto-ingest status."
 say ""
 say "Windows (no Git Bash): see README.md for manual settings.json setup."
+
+# ---- 7. post-install verification ----
+say ""
+say "Verifying installation..."
+VERIFY_OK=true
+
+# Check scripts installed
+for script in scan-sessions.py vault-context.py; do
+  if [[ -f "$VAULT_HOME/scripts/$script" ]]; then
+    say "  ✓ $script"
+  else
+    warn "  ✗ $script not found at $VAULT_HOME/scripts/$script"
+    VERIFY_OK=false
+  fi
+done
+
+# Check skill installed
+if [[ -f "$SKILL_DST/SKILL.md" ]]; then
+  say "  ✓ skill (SKILL.md)"
+else
+  warn "  ✗ skill not found at $SKILL_DST/SKILL.md"
+  VERIFY_OK=false
+fi
+
+# Check slash commands installed
+for cmd in init scan ingest batch-ingest auto-ingest update status help skip; do
+  if [[ -f "$CMD_DST/$cmd.md" ]]; then
+    say "  ✓ /vault:$cmd"
+  else
+    warn "  ✗ /vault:$cmd not found"
+    VERIFY_OK=false
+  fi
+done
+
+# Check hook patched
+if grep -q "vault-context.py" "$SETTINGS" 2>/dev/null; then
+  say "  ✓ SessionStart hook registered in $SETTINGS"
+else
+  warn "  ✗ SessionStart hook not found in $SETTINGS — try re-running install.sh"
+  VERIFY_OK=false
+fi
+
+# Check Python can import required modules
+if $PYTHON -c "import json, pathlib, subprocess, re, datetime" 2>/dev/null; then
+  say "  ✓ Python dependencies OK"
+else
+  warn "  ✗ Python dependency check failed"
+  VERIFY_OK=false
+fi
+
+say ""
+if [[ "$VERIFY_OK" == "true" ]]; then
+  say "All checks passed. Start a new Claude Code session to activate vault context."
+else
+  warn "Some checks failed — review warnings above and re-run install.sh if needed."
+fi
