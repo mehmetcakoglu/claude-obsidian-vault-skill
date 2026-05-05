@@ -1,5 +1,7 @@
 # Claude Obsidian Vault Skill
 
+![Banner](docs/assets/banner.jpg)
+
 **English** | [Türkçe](README.tr.md)
 
 > Give Claude Code a persistent memory. Every session is archived into a searchable markdown wiki — so past decisions, bugs, and patterns are always in context, never re-explained.

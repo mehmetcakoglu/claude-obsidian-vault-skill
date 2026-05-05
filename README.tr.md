@@ -1,5 +1,7 @@
 # Claude Obsidian Vault Skill
 
+![Banner](docs/assets/banner.jpg)
+
 [English](README.md) | **Türkçe**
 
 > Claude Code'a kalıcı bir hafıza kazandırır. Her oturum, aranabilir bir markdown wiki'ye arşivlenir — geçmiş kararlar, hatalar ve örüntüler her zaman bağlamda olur, bir daha açıklanmak zorunda kalınmaz.
