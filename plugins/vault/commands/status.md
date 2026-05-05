@@ -1,6 +1,6 @@
 ---
 description: Show vault health — path, version, queue size, auto_ingest state, last ingest, token savings
-allowed-tools: Read($CLAUDE_VAULT/**), Read(~/Global Claude Vault/**), Bash(python3 * --version), Bash(grep * *)
+allowed-tools: Read($CLAUDE_VAULT/**), Read(~/Global Claude Vault/**), Read(~/.claude/projects/**), Bash(python3 --version), Bash(python3 -c *), Bash(grep * $CLAUDE_VAULT/**), Bash(grep * ~/Global\ Claude\ Vault/**)
 ---
 
 # /vault:status

@@ -1,6 +1,7 @@
 ---
 description: Process all pending Claude Code sessions in sequence, up to a configurable maximum per run
 argument-hint: "[optional: max N — default 5]"
+allowed-tools: Read($CLAUDE_VAULT/**), Read(~/Global Claude Vault/**), Read(~/.claude/projects/**), Read(*/docs/vault/**), Write($CLAUDE_VAULT/**), Write(~/Global Claude Vault/**), Write(*/docs/vault/**), Edit($CLAUDE_VAULT/**), Edit(~/Global Claude Vault/**), Edit(*/docs/vault/**), Bash(python3 *), Bash(git -C * add *), Bash(git -C * commit *)
 ---
 
 # /vault:batch-ingest

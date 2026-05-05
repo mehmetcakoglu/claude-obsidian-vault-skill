@@ -1,7 +1,7 @@
 ---
 description: Bootstrap a project vault — docs/vault/ skeleton + customized CLAUDE.md tailored to the current project
 argument-hint: "[--interactive | project root path]"
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(mkdir -p *), Bash(git *), Read(./**), Read($CLAUDE_VAULT/state/**), Read(~/Global Claude Vault/state/**), Write(*/docs/vault/**), Edit(*/docs/vault/**), Glob(**), Grep(**/*)
 ---
 
 # /vault:init

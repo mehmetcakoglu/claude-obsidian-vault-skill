@@ -1,6 +1,7 @@
 ---
 description: Ingest the next pending Claude Code session into the appropriate vault (global or project)
 argument-hint: "[optional: session-id prefix, defaults to top of queue]"
+allowed-tools: Read($CLAUDE_VAULT/**), Read(~/Global Claude Vault/**), Read(~/.claude/projects/**), Read(*/docs/vault/**), Write($CLAUDE_VAULT/**), Write(~/Global Claude Vault/**), Write(*/docs/vault/**), Edit($CLAUDE_VAULT/**), Edit(~/Global Claude Vault/**), Edit(*/docs/vault/**), Bash(python3 *), Bash(git -C * add *), Bash(git -C * commit *)
 ---
 
 # /vault:ingest
