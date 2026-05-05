@@ -38,27 +38,21 @@ Show a comprehensive health snapshot of the vault system in a single glance.
    avg_injection    = total_injected / sessions_tracked  (0 if no sessions)
    ```
 
-   **Step B — Raw session cost** (actual, not estimated): this is what vault replaced.
-   Without a vault, the user would need to read raw session transcripts or re-explain context.
-   The JSONL file size is the ground truth for how much information was in each session.
+   **Step B — Raw session cost** (optional, best-effort):
+   Try to find JSONL file sizes to compute actual savings. This block is always attempted but degrades gracefully.
 
-   1. Read `$VAULT/state/ingest-sizes.txt` — each line: `SESSION_ID\tSIZE_BYTES\tDATE\tPROJECT`
-   2. For any ingested session NOT in `ingest-sizes.txt`, try to locate its JSONL:
-      - Search `~/.claude/projects/*/SESSION_ID.jsonl` (use the session IDs from `ingested.txt`)
-      - If found, record its byte size
-   3. Sum all found byte sizes → `total_raw_bytes`
-   4. Convert: `total_raw_tokens = total_raw_bytes / 5`
-      _(JSONL is JSON-heavy; 1 token ≈ 5 bytes is a reasonable estimate for structured JSON transcript data)_
-   5. Track how many ingested sessions had size data: `sessions_with_size`
+   1. Try `$VAULT/state/ingest-sizes.txt` — each line: `SESSION_ID\tSIZE_BYTES\tDATE\tPROJECT`
+   2. For any session ID in `ingested.txt` NOT covered by `ingest-sizes.txt`, try:
+      - `~/.claude/projects/*/SESSION_ID.jsonl` — if found, add its byte size
+   3. Sum → `total_raw_bytes`, count → `sessions_with_size`
+   4. `total_raw_tokens = total_raw_bytes / 5`
 
-   **Step C — Compute**:
+   **Step C — Compute savings** (only if `sessions_with_size > 0`):
    ```
    estimated_savings = total_raw_tokens - total_injected
-   roi_pct           = (estimated_savings / total_injected * 100) if total_injected > 0 else 0
-   coverage_pct      = sessions_with_size / total_ingested * 100  (how much data we have)
    ```
 
-5. **Print status table**:
+5. **Print status table** — the "Token savings" section is **always printed**, even when raw size data is unavailable:
 
 ```
 vault status
@@ -85,27 +79,40 @@ vault status
     Avg per session  : ~1,150 tokens
     Last injection   : 2026-05-05 09:47  (~1,200 tokens, project: my-project)
 
-  Raw session cost (actual, 38/42 sessions with size data)
+  Raw session cost (38/42 sessions with size data)
     Total raw JSONL  : ~248 MB  →  ~49,600,000 tokens
-    Avg per session  : ~1,181,000 tokens
 
   Savings
     Estimated saved  : ~49,551,700 tokens
-    ROI              : ~1,026×  (vault injected 0.1% of what sessions contained)
+    ROI              : vault injected 0.1% of what sessions contained  (~1,026×)
 ────────────────────────────────────────────────────────
-  ℹ  Raw token estimate: JSONL bytes ÷ 5  (JSON transcript overhead).
-     Sessions missing size data (4/42): JSONL files not found on disk.
+  ℹ  JSONL bytes ÷ 5 = token estimate. Sessions missing: 4/42 (JSONL not on disk).
+```
+
+   **Degraded output** (when raw size data is unavailable — e.g. no ingest yet):
+
+```
+────────────────────────────────────────────────────────
+  Token savings
+────────────────────────────────────────────────────────
+  Injection cost (actual)
+    Sessions tracked : 5
+    Total injected   : ~6,200 tokens
+    Avg per session  : ~1,240 tokens
+    Last injection   : 2026-05-05 10:17  (~1,703 tokens, project: my-project)
+
+  Raw session cost   : no data yet
+    ℹ  Run /vault:ingest to start tracking raw session sizes.
+       Savings will appear here after the first ingest.
+────────────────────────────────────────────────────────
 ```
 
    Formatting rules:
+   - **Always print the Token savings section** — never skip it entirely.
+   - Always show the "Injection cost" sub-block from `token-log.txt` (if log is missing, show "No injection data yet").
+   - Show "Raw session cost" sub-block only if `sessions_with_size > 0`; otherwise show the degraded note.
    - Format large numbers with thousands separators.
-   - Raw JSONL size in MB for readability (`total_raw_bytes / 1_048_576`).
-   - If `sessions_tracked` is 0 → show "No injection data yet. Start a new session to begin tracking."
-   - If `sessions_with_size` is 0 → skip the "Raw session cost" block and show:
-     "No session size data yet. Run `/vault:ingest` — sizes are recorded from the first ingest onward."
-   - If `sessions_with_size < total_ingested` → note "X/N sessions with size data" so the user knows partial coverage.
-   - If `estimated_savings` < 0 → impossible given JSONL sizes vs injection, but if it happens show "Unusual — injection cost exceeds raw session size."
-   - ROI as a multiplier ("vault injected X% of what sessions contained") is more intuitive than a percentage when ROI >> 100%.
+   - Raw JSONL size in MB (`total_raw_bytes / 1_048_576`).
 
 6. **Action hints** (append only when relevant):
    - Queue > 0 and auto_ingest is off → "Run `/vault:ingest` or `/vault:batch-ingest` to process pending sessions."
@@ -117,7 +124,7 @@ vault status
 
 - `vault-config.json` not found → show "config: missing (defaults assumed)".
 - `state/pending.md` not found → show "queue: unknown (run /vault:scan)".
-- `state/token-log.txt` not found or empty → show "No injection data yet. Start a new session to begin tracking."
-- `state/ingest-sizes.txt` not found → skip raw cost block, show note about future tracking.
+- `state/token-log.txt` not found or empty → show "No injection data yet" inside the Token savings section (never skip the section header).
+- `state/ingest-sizes.txt` not found AND no JSONL files found → show "Raw session cost: no data yet" with the ingest hint. Never skip the whole Token savings block.
 - `scripts/vault-context.py` not found → show "version: unknown".
 - Any individual read failure → show "?" for that field and continue.
