@@ -55,10 +55,10 @@ say "Installed skill → $SKILL_DST/SKILL.md"
 
 # ---- 2. install slash commands ----
 mkdir -p "$CMD_DST"
-for f in init.md scan.md ingest.md batch-ingest.md auto-ingest.md; do
+for f in init.md scan.md ingest.md batch-ingest.md auto-ingest.md update.md; do
   cp -f "$CMD_SRC/$f" "$CMD_DST/$f"
 done
-say "Installed slash commands: /vault:init /vault:scan /vault:ingest /vault:batch-ingest /vault:auto-ingest"
+say "Installed slash commands: /vault:init /vault:scan /vault:ingest /vault:batch-ingest /vault:auto-ingest /vault:update"
 
 # ---- 3. install global vault skeleton (do not overwrite existing files) ----
 mkdir -p "$VAULT_HOME"/{sources/sessions,sources/prompts,decisions,concepts,entities,lessons,syntheses,archive,raw,scripts,state}
@@ -80,6 +80,10 @@ chmod +x "$VAULT_HOME/scripts/"*.sh "$VAULT_HOME/scripts/"*.py 2>/dev/null || tr
 say "Installed scripts: Python (.py) + Unix (.sh) + Windows (.ps1)"
 
 touch "$VAULT_HOME/state/ingested.txt"
+
+# ── record source repo path (used by /vault:update) ──────────────────────────
+echo "$REPO_ROOT" > "$VAULT_HOME/state/plugin-source.txt"
+say "Recorded source path → $VAULT_HOME/state/plugin-source.txt"
 
 # ---- 5. git init vault if needed ----
 if [[ ! -d "$VAULT_HOME/.git" ]]; then
