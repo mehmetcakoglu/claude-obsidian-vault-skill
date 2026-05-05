@@ -99,7 +99,35 @@ answer back as `syntheses/2026-04-29-invoice-recompute-analysis.md`.
 
 ---
 
-## Example 4 — Vault hygiene (lint)
+## Example 4 — Vault doctor (structural health check)
+
+Run `/vault:doctor` to catch and fix structural problems before they accumulate:
+
+```
+/vault:doctor
+```
+
+Claude runs four automated checks across both the global and project vaults:
+
+1. **Structure** — finds missing folders (`bugs/`, `state/`) and required files (`vault-config.json`, `state/pending.md`). Creates them automatically.
+2. **Frontmatter** — finds pages with invalid `status:` values (e.g. `ingested` → auto-fixed to `archived`) or missing required fields.
+3. **Links** — finds dead links in `index.md`, broken wikilinks in report files (auto-flattened to plain text), and pages not listed in `index.md`.
+4. **LINT** — finds pages with `source: manuel` but no `## Sources` section (adds it automatically).
+
+After scanning, it prints a summary and offers three options:
+
+```
+Fix options:
+  [A] Apply all auto-fixable issues automatically
+  [B] Decide on each issue interactively
+  [C] Save report only, skip fixes for now
+```
+
+A doctor report is saved to `syntheses/doctor-YYYY-MM-DD.md` and logged in `log.md`.
+
+---
+
+## Example 4b — Vault hygiene (freeform lint)
 
 Every month or so you ask:
 

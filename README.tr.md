@@ -101,6 +101,7 @@ Bu kadar. Bundan sonra `SessionStart` hook'u, Claude Code her açıldığında t
 |---|---|
 | `/vault:help` | Tüm komutları listeleyen hızlı başvuru kartı |
 | `/vault:status` | Sistem durumu — vault yolu, versiyon, kuyruk boyutu, yapılandırma |
+| `/vault:doctor` | Her iki vault'u yapı, frontmatter, link ve lint sorunları için tarar — ardından düzeltmeyi teklif eder |
 | `/vault:init` | Aktif proje için `docs/vault/` dizinini oluşturur |
 | `/vault:scan` | Bekleyen ingest kuyruğunu yeniler ve gösterir |
 | `/vault:ingest [id]` | Sıradaki (veya belirli bir) oturumu arşivler |
@@ -140,11 +141,30 @@ Claude doğru `index.md`'yi okur, bağlantıları takip eder ve kaynak gösterer
 
 ### Vault temizliği
 
+Yapısal ve içerik sorunlarını tespit edip düzeltmek için `/vault:doctor` komutunu çalıştır:
+
+```
+/vault:doctor
+```
+
+Dört kategoriyi kontrol eder, bulguları raporlar ve otomatik düzeltme, interaktif düzeltme ya da sadece rapor kaydetme seçeneklerinden birini sorar:
+
+| Kontrol | Neler yakalanır | Otomatik düzeltilebilir mi |
+|---|---|---|
+| **Yapı** | Eksik klasörler (`bugs/`, `state/`, …) ve zorunlu dosyalar | ✓ |
+| **Frontmatter** | Eksik alanlar, geçersiz `status:` değerleri (ör. `ingested` → `archived`) | ✓ |
+| **Linkler** | `index.md`'deki ölü linkler, raporlardaki kırık wikilink'ler, index'te olmayan sayfalar | ✓ kısmen |
+| **LINT** | Eskimiş sayfalar (>90 gün `active`), `## Sources` bölümü eksik `source:manuel` dosyaları | ✓ |
+
+Düzeltilemeyen sorunlar (orphan sayfalar, kaynak dosyalardaki kırık linkler) manuel inceleme için listelenir.
+
+Serbest biçimli lint kontrolü — orphan sayfalar, güncelliğini yitirmiş iddialar, geçersiz kod referansları, yinelenen varlıklar — için doğal dille sorabilirsin:
+
 ```
 check the vault
 ```
 
-Claude yalnız kalmış sayfaları, güncelliğini yitirmiş iddiaları, geçersiz kod referanslarını ve yinelenen varlıkları tarar; ardından `syntheses/lint-YYYY-MM-DD.md` dosyasına bir rapor yazar.
+Claude bulguları `syntheses/lint-YYYY-MM-DD.md` dosyasına yazar.
 
 ---
 

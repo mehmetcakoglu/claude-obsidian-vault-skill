@@ -101,6 +101,7 @@ That's it. From here, the `SessionStart` hook scans automatically every time Cla
 |---|---|
 | `/vault:help` | Quick-reference card for all commands |
 | `/vault:status` | Health check — vault path, version, queue size, config |
+| `/vault:doctor` | Scan both vaults for structural, frontmatter, link, and lint issues — then offer to fix them |
 | `/vault:init` | Bootstrap `docs/vault/` for the current project |
 | `/vault:scan` | Refresh + display the pending-ingest queue |
 | `/vault:ingest [id]` | Archive the next (or a specific) pending session |
@@ -140,11 +141,30 @@ Claude reads the right `index.md`, follows the links, and cites its sources.
 
 ### Vault hygiene
 
+Run `/vault:doctor` to scan both vaults for structural and content issues:
+
+```
+/vault:doctor
+```
+
+It checks four categories, reports what it finds, then asks whether to fix everything automatically, interactively, or just save the report:
+
+| Check | What it catches | Auto-fixable |
+|---|---|---|
+| **Structure** | Missing folders (`bugs/`, `state/`, …) and required files | ✓ |
+| **Frontmatter** | Missing fields, invalid `status:` values (e.g. `ingested` → `archived`) | ✓ |
+| **Links** | Dead links in `index.md`, broken wikilinks in reports, pages missing from index | ✓ partial |
+| **LINT** | Stale pages (>90 days `active`), `source:manuel` without a `## Sources` section | ✓ |
+
+Non-fixable issues (orphan pages, broken links in source files, `CLAUDE.md` placeholder links) are listed for manual review.
+
+For a freeform lint pass — orphan pages, stale claims, dead code references, duplicate entities — ask naturally:
+
 ```
 check the vault
 ```
 
-Claude scans for orphan pages, stale claims, dead code references, and duplicate entities, then writes a report to `syntheses/lint-YYYY-MM-DD.md`.
+Claude writes the findings to `syntheses/lint-YYYY-MM-DD.md`.
 
 ---
 

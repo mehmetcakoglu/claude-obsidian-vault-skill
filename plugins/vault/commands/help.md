@@ -16,6 +16,7 @@ vault plugin — slash command reference
 
   /vault:help                  This help card
   /vault:status                Health check — path, queue, version, config
+  /vault:doctor                Scan vaults for issues and offer to fix them
 
   /vault:init                  Bootstrap docs/vault/ for the current project
   /vault:scan                  Refresh the pending-ingest queue (shows queue contents)
@@ -33,6 +34,7 @@ Typical first-session workflow:
   2. /vault:scan          → see what's in the queue
   3. /vault:ingest        → archive the next session
   4. /vault:status        → confirm everything looks good
+  5. /vault:doctor        → check vault health periodically
 ════════════════════════════════════════════════════════════
 Docs & source: https://github.com/mehmetcakoglu/claude-obsidian-vault-skill
 ```

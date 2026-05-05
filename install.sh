@@ -55,10 +55,10 @@ say "Installed skill → $SKILL_DST/SKILL.md"
 
 # ---- 2. install slash commands ----
 mkdir -p "$CMD_DST"
-for f in init.md scan.md ingest.md batch-ingest.md auto-ingest.md update.md status.md help.md skip.md; do
+for f in init.md scan.md ingest.md batch-ingest.md auto-ingest.md update.md status.md help.md skip.md doctor.md; do
   [[ -f "$CMD_SRC/$f" ]] && cp -f "$CMD_SRC/$f" "$CMD_DST/$f"
 done
-say "Installed slash commands: /vault:init /vault:scan /vault:ingest /vault:batch-ingest /vault:auto-ingest /vault:update /vault:status /vault:help /vault:skip"
+say "Installed slash commands: /vault:init /vault:scan /vault:ingest /vault:batch-ingest /vault:auto-ingest /vault:update /vault:status /vault:help /vault:skip /vault:doctor"
 
 # ---- 3. install global vault skeleton (do not overwrite existing files) ----
 mkdir -p "$VAULT_HOME"/{sources/sessions,sources/prompts,decisions,concepts,entities,lessons,syntheses,archive,raw,scripts,state}
@@ -188,7 +188,7 @@ else
 fi
 
 # Check slash commands installed
-for cmd in init scan ingest batch-ingest auto-ingest update status help skip; do
+for cmd in init scan ingest batch-ingest auto-ingest update status help skip doctor; do
   if [[ -f "$CMD_DST/$cmd.md" ]]; then
     say "  ✓ /vault:$cmd"
   else
