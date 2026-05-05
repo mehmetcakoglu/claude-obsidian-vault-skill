@@ -97,19 +97,21 @@ That's it. From here, the `SessionStart` hook scans automatically every time Cla
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `/vault:help` | Quick-reference card for all commands |
-| `/vault:status` | Health check — vault path, version, queue size, config |
-| `/vault:doctor` | Scan both vaults for structural, frontmatter, link, and lint issues — then offer to fix them |
-| `/vault:init` | Bootstrap `docs/vault/` for the current project |
-| `/vault:scan` | Refresh + display the pending-ingest queue |
-| `/vault:ingest [id]` | Archive the next (or a specific) pending session |
-| `/vault:batch-ingest [N\|all]` | Archive up to N sessions in one run (default 5) |
-| `/vault:skip <id>` | Permanently remove a session from the queue |
-| `/vault:auto-ingest [on\|off\|status]` | Toggle automatic archiving at session start |
-| `/vault:auto-ingest [on\|off] [max N]` | Also set the per-session maximum |
-| `/vault:update` | Pull latest version from GitHub and reinstall |
+| Command | What it does | Docs |
+|---|---|---|
+| `/vault:help` | Quick-reference card for all commands | [→](docs/commands/vault-help.md) |
+| `/vault:status` | Health check — vault path, version, queue size, config | [→](docs/commands/vault-status.md) |
+| `/vault:doctor` | Scan both vaults for structural, frontmatter, link, and lint issues — then offer to fix them | [→](docs/commands/vault-doctor.md) |
+| `/vault:init` | Bootstrap `docs/vault/` for the current project | [→](docs/commands/vault-init.md) |
+| `/vault:scan` | Refresh + display the pending-ingest queue | [→](docs/commands/vault-scan.md) |
+| `/vault:ingest [id]` | Archive the next (or a specific) pending session | [→](docs/commands/vault-ingest.md) |
+| `/vault:batch-ingest [N\|all]` | Archive up to N sessions in one run (default 5) | [→](docs/commands/vault-batch-ingest.md) |
+| `/vault:skip <id>` | Permanently remove a session from the queue | [→](docs/commands/vault-skip.md) |
+| `/vault:auto-ingest [on\|off\|status]` | Toggle automatic archiving at session start | [→](docs/commands/vault-auto-ingest.md) |
+| `/vault:auto-ingest [on\|off] [max N]` | Also set the per-session maximum | [→](docs/commands/vault-auto-ingest.md) |
+| `/vault:update` | Pull latest version from GitHub and reinstall | [→](docs/commands/vault-update.md) |
+
+**Full technical documentation:** [docs/index.md](docs/index.md) — architecture, file layout, data flow, and per-command reference.
 
 ---
 
@@ -141,7 +143,7 @@ Claude reads the right `index.md`, follows the links, and cites its sources.
 
 ### Vault hygiene
 
-Run `/vault:doctor` to scan both vaults for structural and content issues:
+Run `/vault:doctor` to scan both vaults for structural and content issues ([full reference](docs/commands/vault-doctor.md)):
 
 ```
 /vault:doctor
@@ -186,6 +188,8 @@ Settings live in `~/Global Claude Vault/vault-config.json`. The easiest way to c
 ---
 
 ## How it works
+
+> For a deeper dive — session lifecycle, update system, file layout — see the [technical documentation](docs/index.md).
 
 ```
 ~/.claude/projects/*/*.jsonl        (Claude Code session transcripts)
@@ -293,6 +297,17 @@ Claude Code packaging (slash commands, auto-scan, hybrid scoping, session regist
 [Mehmet Çakoğlu](https://github.com/mehmetcakoglu).
 
 See [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md) for the full attribution.
+
+---
+
+## Documentation
+
+| | |
+|---|---|
+| [Technical docs](docs/index.md) | Architecture, file layout, data flow, update system |
+| [Command reference](docs/commands/) | Detailed per-command docs with files read/written |
+| [Examples](docs/EXAMPLES.md) | Worked examples: ingest, query, doctor, cross-project |
+| [Concepts](docs/CONCEPTS.md) | LLM-Wiki pattern, hybrid vault design |
 
 ---
 

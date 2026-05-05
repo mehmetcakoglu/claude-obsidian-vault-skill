@@ -97,19 +97,21 @@ Bu kadar. Bundan sonra `SessionStart` hook'u, Claude Code her açıldığında t
 
 ## Komutlar
 
-| Komut | Ne yapar |
-|---|---|
-| `/vault:help` | Tüm komutları listeleyen hızlı başvuru kartı |
-| `/vault:status` | Sistem durumu — vault yolu, versiyon, kuyruk boyutu, yapılandırma |
-| `/vault:doctor` | Her iki vault'u yapı, frontmatter, link ve lint sorunları için tarar — ardından düzeltmeyi teklif eder |
-| `/vault:init` | Aktif proje için `docs/vault/` dizinini oluşturur |
-| `/vault:scan` | Bekleyen ingest kuyruğunu yeniler ve gösterir |
-| `/vault:ingest [id]` | Sıradaki (veya belirli bir) oturumu arşivler |
-| `/vault:batch-ingest [N\|all]` | Tek seferde en fazla N oturum arşivler (varsayılan: 5) |
-| `/vault:skip <id>` | Bir oturumu kuyruktan kalıcı olarak çıkarır |
-| `/vault:auto-ingest [on\|off\|status]` | Oturum başında otomatik arşivlemeyi açar/kapatır |
-| `/vault:auto-ingest [on\|off] [max N]` | Aynı zamanda oturum başına maksimumu ayarlar |
-| `/vault:update` | GitHub'dan en son sürümü çekip yeniden kurar |
+| Komut | Ne yapar | Dokümantasyon |
+|---|---|---|
+| `/vault:help` | Tüm komutları listeleyen hızlı başvuru kartı | [→](docs/commands/vault-help.md) |
+| `/vault:status` | Sistem durumu — vault yolu, versiyon, kuyruk boyutu, yapılandırma | [→](docs/commands/vault-status.md) |
+| `/vault:doctor` | Her iki vault'u yapı, frontmatter, link ve lint sorunları için tarar — ardından düzeltmeyi teklif eder | [→](docs/commands/vault-doctor.md) |
+| `/vault:init` | Aktif proje için `docs/vault/` dizinini oluşturur | [→](docs/commands/vault-init.md) |
+| `/vault:scan` | Bekleyen ingest kuyruğunu yeniler ve gösterir | [→](docs/commands/vault-scan.md) |
+| `/vault:ingest [id]` | Sıradaki (veya belirli bir) oturumu arşivler | [→](docs/commands/vault-ingest.md) |
+| `/vault:batch-ingest [N\|all]` | Tek seferde en fazla N oturum arşivler (varsayılan: 5) | [→](docs/commands/vault-batch-ingest.md) |
+| `/vault:skip <id>` | Bir oturumu kuyruktan kalıcı olarak çıkarır | [→](docs/commands/vault-skip.md) |
+| `/vault:auto-ingest [on\|off\|status]` | Oturum başında otomatik arşivlemeyi açar/kapatır | [→](docs/commands/vault-auto-ingest.md) |
+| `/vault:auto-ingest [on\|off] [max N]` | Aynı zamanda oturum başına maksimumu ayarlar | [→](docs/commands/vault-auto-ingest.md) |
+| `/vault:update` | GitHub'dan en son sürümü çekip yeniden kurar | [→](docs/commands/vault-update.md) |
+
+**Teknik dokümantasyon:** [docs/index.md](docs/index.md) — mimari, dosya yapısı, veri akışı ve komut referansları.
 
 ---
 
@@ -186,6 +188,8 @@ Ayarlar `~/Global Claude Vault/vault-config.json` dosyasında tutulur. En kolay 
 ---
 
 ## Nasıl çalışır
+
+> Daha fazla ayrıntı için — oturum yaşam döngüsü, güncelleme sistemi, dosya yapısı — [teknik dokümantasyona](docs/index.md) bak.
 
 ```
 ~/.claude/projects/*/*.jsonl        (Claude Code oturum transkriptleri)
@@ -293,6 +297,17 @@ Claude Code paketlemesi (slash komutlar, otomatik tarama, hibrit kapsam, oturum 
 [Mehmet Çakoğlu](https://github.com/mehmetcakoglu).
 
 Tüm atıflar için [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md) dosyasına bak.
+
+---
+
+## Dokümantasyon
+
+| | |
+|---|---|
+| [Teknik dokümantasyon](docs/index.md) | Mimari, dosya yapısı, veri akışı, güncelleme sistemi |
+| [Komut referansları](docs/commands/) | Her komut için ayrıntılı teknik açıklama |
+| [Örnekler](docs/EXAMPLES.md) | Ingest, sorgu, doctor, projeler arası öğrenme örnekleri |
+| [Kavramlar](docs/CONCEPTS.md) | LLM-Wiki örüntüsü, hibrit vault tasarımı |
 
 ---
 
