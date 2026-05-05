@@ -193,6 +193,54 @@ The scan and context injection happen automatically. Ingesting (writing pages) i
 
 ---
 
+## Token savings
+
+`/vault:status` shows how many tokens the vault has saved. Here's how that number is calculated — and why it's meaningful.
+
+### How Claude Code sessions actually work
+
+Every time you send a message, Claude Code sends the **entire conversation history up to that point** to the API. A session with 10 prompts sends context cumulatively:
+
+```
+Turn 1:   30K tokens sent
+Turn 2:   60K tokens sent   ← full history resent
+Turn 3:   90K tokens sent
+...
+Turn 10: 300K tokens sent
+─────────────────────────
+Total:   ~1.65M tokens sent to the API during the session
+```
+
+The session JSONL file on disk stores each message **once** — so a 3 MB file represents ~600K tokens of unique content, not the 1.65M actually sent.
+
+### What "savings" means here
+
+The vault doesn't reduce tokens spent *during* a session. What it eliminates is the **cold-start cost** at the beginning of every *future* session — the tokens that would otherwise be spent re-reading files and re-explaining past decisions.
+
+```
+Without vault — future session:
+  Read key files to reconstruct context  ~50–600K tokens
+  User re-explains past decisions        ~300 tokens
+  Claude re-discovers known patterns     (and sometimes gets them wrong)
+
+With vault — future session:
+  Inject pre-digested summary            ~800–2,000 tokens
+```
+
+### How savings are measured
+
+The JSONL file size is the ground truth for "how much information was in this session." To understand that session's content in a future conversation without a vault, you'd need to read some or all of that transcript. The vault condenses it to a small summary injected at session start.
+
+```
+savings per session ≈ (JSONL bytes ÷ 5) − injection tokens
+```
+
+_1 token ≈ 5 bytes for JSON transcript data (JSON structure overhead is higher than plain text)._
+
+A 3 MB session contains ~600K tokens of information. The vault injects ~1,200 tokens of its essence. The compression ratio is typically **200–500×**.
+
+---
+
 ## Compatibility
 
 | Platform | Status |

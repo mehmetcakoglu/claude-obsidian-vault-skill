@@ -193,6 +193,54 @@ Tarama ve bağlam enjeksiyonu otomatik gerçekleşir. Arşivleme (sayfa yazmak) 
 
 ---
 
+## Token tasarrufu
+
+`/vault:status` vault'un şimdiye kadar kaç token tasarrufu sağladığını gösterir. Bu sayının nasıl hesaplandığını ve neden anlamlı olduğunu anlamak için:
+
+### Claude Code oturumları aslında nasıl çalışır
+
+Her mesaj gönderiminde Claude Code, **o ana kadarki tüm konuşma geçmişini** API'ye yeniden gönderir. 10 prompt içeren bir oturumda bağlam kümülatif olarak büyür:
+
+```
+1. tur:   30K token gönderildi
+2. tur:   60K token gönderildi   ← tüm geçmiş yeniden gönderildi
+3. tur:   90K token gönderildi
+...
+10. tur: 300K token gönderildi
+──────────────────────────────
+Toplam:  ~1,65M token API'ye gönderildi (oturum boyunca)
+```
+
+Diskteki JSONL dosyası ise her mesajı **bir kez** kaydeder — 3 MB'lık bir dosya ~600K token benzersiz içerik barındırır; API'ye gönderilen 1,65M token'ı değil.
+
+### "Tasarruf" burada ne anlama gelir
+
+Vault, *mevcut* bir oturum sırasında harcanan token'ları azaltmaz. Ortadan kaldırdığı şey, her *yeni* oturumun başındaki **soğuk başlangıç maliyetidir** — dosyaları yeniden okumak ve geçmiş kararları yeniden açıklamak için harcanacak token'lar:
+
+```
+Vault yok — yeni oturum:
+  Bağlamı yeniden oluşturmak için dosya oku    ~50–600K token
+  Kullanıcı geçmiş kararları yeniden açıklar   ~300 token
+  Claude bilinen örüntüleri yeniden keşfeder   (bazen hatalı)
+
+Vault var — yeni oturum:
+  Önceden hazırlanmış özet inject edilir        ~800–2.000 token
+```
+
+### Tasarruf nasıl ölçülür
+
+JSONL dosya boyutu, "bu oturumda ne kadar bilgi vardı" sorusunun gerçek cevabıdır. Vault olmadan gelecekte o oturumun içeriğini anlamak için transkriptin tamamını ya da bir kısmını okumak gerekir. Vault bunu oturum başında inject edilen küçük bir özete sıkıştırır.
+
+```
+oturum başına tasarruf ≈ (JSONL bayt ÷ 5) − inject edilen token
+```
+
+_1 token ≈ 5 bayt — JSON transcript verisi için (JSON yapısal yükü düz metinden daha ağır)._
+
+3 MB'lık bir oturum ~600K token bilgi içerir. Vault bunun özünü ~1.200 token olarak inject eder. Sıkıştırma oranı genellikle **200–500×** arasındadır.
+
+---
+
 ## Platform desteği
 
 | Platform | Durum |
