@@ -257,6 +257,33 @@ for root, _, files in os.walk(vault):
                            "msg": f"Source:manuel but no ## Sources section: {rel_path}",
                            "fix": "add_sources_section", "target": rel_path})
 
+# Check ingest-sizes.txt coverage (only for global vault — it's the shared registry)
+ingested_path = os.path.join(vault, "state", "ingested.txt")
+sizes_path = os.path.join(vault, "state", "ingest-sizes.txt")
+if os.path.isfile(ingested_path):
+    ingested_ids = []
+    with open(ingested_path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                sid = line.split()[0]
+                if sid:
+                    ingested_ids.append(sid)
+    sized_ids = set()
+    if os.path.isfile(sizes_path):
+        with open(sizes_path, encoding="utf-8") as fh:
+            for line in fh:
+                parts = line.strip().split("\t")
+                if parts and parts[0]:
+                    sized_ids.add(parts[0])
+    missing = [s for s in ingested_ids if s not in sized_ids]
+    if missing:
+        issues.append({"type": "lint", "severity": "warning",
+                       "msg": f"ingest-sizes.txt missing {len(missing)}/{len(ingested_ids)} session sizes — vault:status shows 'no data yet'",
+                       "fix": "populate_ingest_sizes",
+                       "target": "state/ingest-sizes.txt",
+                       "missing_ids": missing})
+
 print(json.dumps(issues))
 ```
 
@@ -341,12 +368,13 @@ Apply all auto-fixable issues (those with a non-null `fix` field) in this order:
 7. **fix_invalid_status**: Use Edit tool to replace `status: <invalid_val>` with `status: <suggested_value>` in the frontmatter of `target`. The `suggested_value` is provided in the issue object → print `✓ Status fixed: <invalid_val> → <suggested_value>: <target>`
 8. **fix_wikilink_in_report**: Use Edit tool to replace every `[[<target>]]` occurrence with plain `<target>` (no brackets) in `source_file`. Use `replace_all: true` → print `✓ Wikilink flattened in <source_file>: [[<target>]] → <target>`
 9. **add_sources_section**: Use Edit tool to append `\n\n## Sources\n\n_(no source recorded)_` at the end of `target` → print `✓ Sources section added: <target>`
+10. **populate_ingest_sizes**: Run via `ctx_execute` (language: python) to scan `~/.claude/projects/*/SESSION_ID.jsonl` for each session ID listed in `issue.missing_ids`. For each JSONL found on disk, append a tab-separated line to `<vault>/state/ingest-sizes.txt`: `SESSION_ID\tSIZE_BYTES\tDATE\tPROJECT` (DATE = file mtime as YYYY-MM-DD, PROJECT = parent folder name). Create the file if it doesn't exist. Print `✓ ingest-sizes.txt: N sessions sized, M not found on disk` where M = sessions whose JSONL wasn't found.
 
 After all fixes: print `\nTotal X issues fixed.`
 
 ### [B] — Interactive
 
-Supported fix types in interactive mode: `create_dir`, `create_file`, `remove_index_entry`, `add_index_entry`, `add_frontmatter`, `add_frontmatter_field`, `fix_invalid_status`, `fix_wikilink_in_report`, `add_sources_section`.
+Supported fix types in interactive mode: `create_dir`, `create_file`, `remove_index_entry`, `add_index_entry`, `add_frontmatter`, `add_frontmatter_field`, `fix_invalid_status`, `fix_wikilink_in_report`, `add_sources_section`, `populate_ingest_sizes`.
 
 For each auto-fixable issue, one at a time:
 1. Print: `[N/Total] <severity-icon> <msg>`
