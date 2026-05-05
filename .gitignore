@@ -4,3 +4,10 @@
 .vscode/
 *.swp
 docs/vault/
+.github/hooks/context-mode.json
+.github/hooks/context-mode.json.bak
+.serena/project.yml
+.github/hooks/context-mode.json
+.serena/project.yml
+.github/hooks/context-mode.json
+.serena/project.yml
