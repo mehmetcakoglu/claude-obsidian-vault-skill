@@ -191,6 +191,12 @@ Global vault                         Proje vault'u
 
 Tarama ve bağlam enjeksiyonu otomatik gerçekleşir. Arşivleme (sayfa yazmak) varsayılan olarak kullanıcı tarafından tetiklenir — sırları filtreler, yönlendirme kararı verir ve kalıcı dosyalar yazar, bu nedenle insan gözetimini hak eder.
 
+Obsidian'da açıldığında vault, gezilebilir bir bilgi grafiğine dönüşür:
+
+![Vault'un Obsidian graph görünümü](docs/assets/obsidian-graph.png)
+
+_Her düğüm bir sayfadır (oturum, karar, varlık, kavram, hata). Büyük düğümler daha fazla gelen bağlantıya sahiptir — bunlar arşivinizdeki en çok referans verilen bilgi parçalarıdır._
+
 ---
 
 ## Token tasarrufu

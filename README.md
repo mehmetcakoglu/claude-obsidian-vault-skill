@@ -191,6 +191,12 @@ Global vault                         Project vault
 
 The scan and context injection happen automatically. Ingesting (writing pages) is user-triggered by default, because it filters secrets, decides routing, and writes permanent files — that deserves a human in the loop.
 
+When opened in Obsidian, the vault becomes a navigable knowledge graph:
+
+![Obsidian graph view of a vault](docs/assets/obsidian-graph.png)
+
+_Each node is a page (session, decision, entity, concept, bug). Larger nodes have more inbound links — these are the most-referenced pieces of knowledge in your archive._
+
 ---
 
 ## Token savings
