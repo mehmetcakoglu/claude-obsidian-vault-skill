@@ -82,7 +82,7 @@ Navigate to a project and run:
 ```
 /vault:init
 ```
-Claude asks 5 quick questions (project name, stack, domain terms) and creates `docs/vault/` with a customized knowledge schema. Do this once per project.
+Auto-detects your project name and stack, creates `docs/vault/` instantly — no questions asked. Edit `docs/vault/CLAUDE.md` afterwards to add domain terms. Pass `--interactive` if you want to fill in details upfront.
 
 **3. Archive your first session**
 

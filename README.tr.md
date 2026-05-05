@@ -82,7 +82,7 @@ Bir projenin içinde şunu çalıştır:
 ```
 /vault:init
 ```
-Claude 5 kısa soru sorar (proje adı, teknoloji yığını, alan terimleri) ve özelleştirilmiş bir bilgi şemasıyla `docs/vault/` dizinini oluşturur. Her proje için bir kez yapılır.
+Proje adını ve teknoloji yığınını otomatik tespit eder, `docs/vault/` dizinini anında oluşturur — hiç soru sormaz. Alan terimlerini eklemek için `docs/vault/CLAUDE.md` dosyasını sonradan düzenleyebilirsin. Detayları önceden girmek istersen `--interactive` geçebilirsin.
 
 **3. İlk oturumu arşivle**
 
