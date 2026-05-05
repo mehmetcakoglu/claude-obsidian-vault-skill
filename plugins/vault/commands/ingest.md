@@ -42,8 +42,15 @@ Process one pending Claude Code session from `${CLAUDE_VAULT:-$HOME/claude-vault
    - Topics covered
    - List of pages created
    - Any skipped / excluded content and why
-3. **Append the processed session ID to `${CLAUDE_VAULT:-$HOME/claude-vault}/state/ingested.txt`** with a `# ingest #N — <slug>` comment, even when the session was ingested into a project vault. `ingested.txt` is the shared registry across all vaults.
-4. Re-run `${CLAUDE_VAULT:-$HOME/claude-vault}/scripts/scan-sessions.sh --quiet` to refresh `pending.md`.
+3. **Append the processed session ID to `${CLAUDE_VAULT:-$HOME/Global Claude Vault}/state/ingested.txt`** with a `# ingest #N — <slug>` comment, even when the session was ingested into a project vault. `ingested.txt` is the shared registry across all vaults.
+
+4. **Record the session's raw file size** in `${CLAUDE_VAULT:-$HOME/Global Claude Vault}/state/ingest-sizes.txt` — one tab-separated line:
+   ```
+   <session-id>\t<size-in-bytes>\t<YYYY-MM-DD>\t<project-name>
+   ```
+   Get the byte size from the JSONL source path (`stat` or `os.path.getsize`). This data is used by `/vault:status` to compute accurate token savings (raw JSONL bytes → tokens saved vs. vault injection cost). If the file size cannot be determined, skip this step silently.
+
+5. Re-run `${CLAUDE_VAULT:-$HOME/Global Claude Vault}/scripts/scan-sessions.py --quiet` to refresh `pending.md`.
 5. Commit the change in the target repository (global vault repo for global ingests, project repo for project ingests) with a `docs(vault): ingest #N — <slug>` message.
 
 ## Stop criteria

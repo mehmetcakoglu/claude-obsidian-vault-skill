@@ -25,27 +25,37 @@ Show a comprehensive health snapshot of the vault system in a single glance.
    - **Project vault**: check if `./docs/vault/CLAUDE.md` exists in cwd → "yes (docs/vault/)" or "no"
    - **Token log**: read ALL lines of `$VAULT/state/token-log.txt` for the savings calculation below
 
-4. **Token savings calculation** — run this as a Python snippet using `ctx_execute` or inline math:
+4. **Token savings calculation** — run as a Python snippet via `ctx_execute` or inline math:
 
-   Parse every non-empty line of `token-log.txt`. Each line has the format:
+   **Step A — Injection cost** (actual): parse every non-empty line of `token-log.txt`:
    ```
    2026-04-26 21:00   5430 chars   ~1357 tokens   Personal-Finance-Tracker
    ```
    Extract the integer after `~` and before ` tokens`.
-
-   Compute:
    ```
-   sessions_tracked   = number of valid lines
-   total_injected     = sum of all token values
-   avg_injection      = total_injected / sessions_tracked   (or 0 if no sessions)
+   sessions_tracked = number of valid lines
+   total_injected   = sum of all token values
+   avg_injection    = total_injected / sessions_tracked  (0 if no sessions)
+   ```
 
-   # Conservative baseline: without vault, Claude would spend ~2,500 tokens per session
-   # re-reading 3–4 context files (~600 tokens each) + user re-explaining decisions (~300 tokens).
-   BASELINE_PER_SESSION = 2500
+   **Step B — Raw session cost** (actual, not estimated): this is what vault replaced.
+   Without a vault, the user would need to read raw session transcripts or re-explain context.
+   The JSONL file size is the ground truth for how much information was in each session.
 
-   total_baseline     = BASELINE_PER_SESSION * sessions_tracked
-   estimated_savings  = total_baseline - total_injected   (can be negative early on)
-   roi_pct            = (estimated_savings / total_injected * 100) if total_injected > 0 else 0
+   1. Read `$VAULT/state/ingest-sizes.txt` — each line: `SESSION_ID\tSIZE_BYTES\tDATE\tPROJECT`
+   2. For any ingested session NOT in `ingest-sizes.txt`, try to locate its JSONL:
+      - Search `~/.claude/projects/*/SESSION_ID.jsonl` (use the session IDs from `ingested.txt`)
+      - If found, record its byte size
+   3. Sum all found byte sizes → `total_raw_bytes`
+   4. Convert: `total_raw_tokens = total_raw_bytes / 5`
+      _(JSONL is JSON-heavy; 1 token ≈ 5 bytes is a reasonable estimate for structured JSON transcript data)_
+   5. Track how many ingested sessions had size data: `sessions_with_size`
+
+   **Step C — Compute**:
+   ```
+   estimated_savings = total_raw_tokens - total_injected
+   roi_pct           = (estimated_savings / total_injected * 100) if total_injected > 0 else 0
+   coverage_pct      = sessions_with_size / total_ingested * 100  (how much data we have)
    ```
 
 5. **Print status table**:
@@ -67,27 +77,35 @@ vault status
   Project vault  : yes (docs/vault/)
 
 ────────────────────────────────────────────────────────
-  Token savings (estimated)
+  Token savings
 ────────────────────────────────────────────────────────
-  Sessions tracked   : 42
-  Total injected     : ~48,300 tokens
-  Avg per session    : ~1,150 tokens
+  Injection cost (actual)
+    Sessions tracked : 42
+    Total injected   : ~48,300 tokens
+    Avg per session  : ~1,150 tokens
+    Last injection   : 2026-05-05 09:47  (~1,200 tokens, project: my-project)
 
-  Baseline (no vault): ~105,000 tokens  (2,500 × 42 sessions)
-  Estimated saved    : ~56,700 tokens
-  ROI                : ~117%  (saved 2.2× what was injected)
+  Raw session cost (actual, 38/42 sessions with size data)
+    Total raw JSONL  : ~248 MB  →  ~49,600,000 tokens
+    Avg per session  : ~1,181,000 tokens
 
-  Last injection     : 2026-05-05 09:47  (~1,200 tokens, project: my-project)
+  Savings
+    Estimated saved  : ~49,551,700 tokens
+    ROI              : ~1,026×  (vault injected 0.1% of what sessions contained)
 ────────────────────────────────────────────────────────
-  ℹ  Savings estimate assumes ~2,500 tokens of context-discovery cost per
-     session without the vault (3–4 file reads + user re-explanation).
-     Actual savings vary by project complexity and session length.
+  ℹ  Raw token estimate: JSONL bytes ÷ 5  (JSON transcript overhead).
+     Sessions missing size data (4/42): JSONL files not found on disk.
 ```
 
+   Formatting rules:
+   - Format large numbers with thousands separators.
+   - Raw JSONL size in MB for readability (`total_raw_bytes / 1_048_576`).
    - If `sessions_tracked` is 0 → show "No injection data yet. Start a new session to begin tracking."
-   - If `estimated_savings` < 0 → show "Not yet at breakeven — vault needs ~N more sessions." (N = ceil(total_injected / (BASELINE - avg_injection)))
-   - Format large numbers with thousands separators (48,300 not 48300).
-   - ROI label: < 0% → "not yet at breakeven", 0–50% → "approaching breakeven", > 50% → show the multiplier (e.g. "saved 2.2× what was injected").
+   - If `sessions_with_size` is 0 → skip the "Raw session cost" block and show:
+     "No session size data yet. Run `/vault:ingest` — sizes are recorded from the first ingest onward."
+   - If `sessions_with_size < total_ingested` → note "X/N sessions with size data" so the user knows partial coverage.
+   - If `estimated_savings` < 0 → impossible given JSONL sizes vs injection, but if it happens show "Unusual — injection cost exceeds raw session size."
+   - ROI as a multiplier ("vault injected X% of what sessions contained") is more intuitive than a percentage when ROI >> 100%.
 
 6. **Action hints** (append only when relevant):
    - Queue > 0 and auto_ingest is off → "Run `/vault:ingest` or `/vault:batch-ingest` to process pending sessions."
@@ -99,6 +117,7 @@ vault status
 
 - `vault-config.json` not found → show "config: missing (defaults assumed)".
 - `state/pending.md` not found → show "queue: unknown (run /vault:scan)".
-- `state/token-log.txt` not found or empty → show savings section as "No injection data yet."
+- `state/token-log.txt` not found or empty → show "No injection data yet. Start a new session to begin tracking."
+- `state/ingest-sizes.txt` not found → skip raw cost block, show note about future tracking.
 - `scripts/vault-context.py` not found → show "version: unknown".
 - Any individual read failure → show "?" for that field and continue.
