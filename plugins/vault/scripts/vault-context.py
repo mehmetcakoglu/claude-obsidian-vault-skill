@@ -32,7 +32,7 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
-__version__ = "0.3.5"
+__version__ = "1.0.0"
 _UPDATE_URL = (
     "https://raw.githubusercontent.com/mehmetcakoglu/"
     "claude-obsidian-vault-skill/main/plugins/vault/.claude-plugin/plugin.json"
@@ -414,28 +414,51 @@ def read_config(vault: Path) -> dict:
 
 # ── update check ─────────────────────────────────────────────────────────────
 
+def _ver_tuple(v: str) -> tuple:
+    """Convert 'X.Y.Z' to (X, Y, Z) for comparison. Invalid → (0, 0, 0)."""
+    try:
+        return tuple(int(x) for x in v.strip().split("."))
+    except (ValueError, AttributeError):
+        return (0, 0, 0)
+
+
 def check_for_update(vault: Path) -> str | None:
-    """Fetch latest version from GitHub once per day. Returns a notice or None."""
+    """Fetch latest version from GitHub once per day. Returns a notice or None.
+
+    update-check.txt format: 'YYYY-MM-DD REMOTE_VERSION'
+    Cached so vault:status can read the remote version without re-fetching.
+    """
     stamp = vault / "state" / "update-check.txt"
     today = date.today().isoformat()
+
+    # Check cache first
     try:
-        if stamp.exists() and stamp.read_text(encoding="utf-8").strip() == today:
-            return None
+        if stamp.exists():
+            parts = stamp.read_text(encoding="utf-8").strip().split()
+            if parts and parts[0] == today:
+                cached_remote = parts[1] if len(parts) > 1 else ""
+                if cached_remote and _ver_tuple(cached_remote) > _ver_tuple(__version__):
+                    return (
+                        f"⚠️  vault update available: v{__version__} → v{cached_remote}. "
+                        f"Run /vault:update to upgrade."
+                    )
+                return None
     except OSError:
         pass
 
+    # Fetch from GitHub
     try:
         import urllib.request
         with urllib.request.urlopen(_UPDATE_URL, timeout=2) as resp:
             remote = json.loads(resp.read().decode()).get("version", "")
-        stamp.write_text(today, encoding="utf-8")
+        stamp.write_text(f"{today} {remote}", encoding="utf-8")
     except Exception:
         return None
 
-    if remote and remote != __version__:
+    if remote and _ver_tuple(remote) > _ver_tuple(__version__):
         return (
-            f"⚠️  vault plugin update available: v{__version__} → v{remote}. "
-            f"Run `./install.sh` from the repo (or `git pull && ./install.sh`) to update."
+            f"⚠️  vault update available: v{__version__} → v{remote}. "
+            f"Run /vault:update to upgrade."
         )
     return None
 

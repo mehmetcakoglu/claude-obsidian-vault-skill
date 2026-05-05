@@ -21,7 +21,7 @@ Show a comprehensive health snapshot of the vault system in a single glance.
    - **Queue size**: count data rows in `$VAULT/state/pending.md` (lines matching `^| [0-9]`)
    - **Total ingested**: count lines in `$VAULT/state/ingested.txt` (non-empty, non-comment)
    - **Last ingest**: last non-empty line in `$VAULT/state/ingested.txt` that contains a session slug
-   - **Update-check date**: content of `$VAULT/state/update-check.txt`
+   - **Update-check**: parse `$VAULT/state/update-check.txt` — format is `YYYY-MM-DD REMOTE_VERSION` (e.g. `2026-05-05 1.0.0`). Extract the date and remote version. Compare remote version to installed version: if remote > installed, show update notice; otherwise show "up to date".
    - **Project vault**: check if `./docs/vault/CLAUDE.md` exists in cwd → "yes (docs/vault/)" or "no"
    - **Token log**: read ALL lines of `$VAULT/state/token-log.txt` for the savings calculation below
 
@@ -66,7 +66,8 @@ vault status
   Last ingest    : 2026-04-26 — <slug>
 
   auto_ingest    : off  (max 5 per session)
-  Update check   : 2026-05-05 (up to date)
+  Update check   : 2026-05-05 (v1.0.0, up to date)
+                   OR: 2026-05-05 (v1.0.1 available — run /vault:update)
 
   Project vault  : yes (docs/vault/)
 
