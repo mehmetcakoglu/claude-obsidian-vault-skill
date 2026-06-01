@@ -16,14 +16,19 @@ What it does:
 
 Usage (in ~/.claude/settings.json):
     macOS / Linux:
-        python3 -c "import pathlib,subprocess,sys,os; p=pathlib.Path(os.environ.get('CLAUDE_VAULT', str(pathlib.Path.home()/'Global Claude Vault')))/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None"
+        python3 -c "import pathlib,subprocess,sys,os; vault=pathlib.Path(os.environ.get('CLAUDE_VAULT',str(pathlib.Path.home()/'Global Claude Vault'))); p=vault/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p),str(vault)]) if p.exists() else None"
     Windows (replace python3 with python if needed):
-        python -c "import pathlib,subprocess,sys,os; p=pathlib.Path(os.environ.get('CLAUDE_VAULT', str(pathlib.Path.home()/'Global Claude Vault')))/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None"
+        python -c "import pathlib,subprocess,sys,os; vault=pathlib.Path(os.environ.get('CLAUDE_VAULT',str(pathlib.Path.home()/'Global Claude Vault'))); p=vault/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p),str(vault)]) if p.exists() else None"
+
+Arguments:
+    sys.argv[1]         Optional vault path override (takes precedence over CLAUDE_VAULT)
 
 Environment variables:
     CLAUDE_VAULT        Override global vault directory (default: ~/Global Claude Vault)
     CLAUDE_PROJECT_DIR  Override project directory (default: cwd)
 """
+
+from __future__ import annotations
 
 import json
 import os
@@ -32,7 +37,7 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 _UPDATE_URL = (
     "https://raw.githubusercontent.com/mehmetcakoglu/"
     "claude-obsidian-vault-skill/main/plugins/vault/.claude-plugin/plugin.json"
@@ -47,6 +52,8 @@ _MAX_ENTITY_CHARS = 3000
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def get_vault() -> Path:
+    if len(sys.argv) > 1:
+        return Path(sys.argv[1])
     return Path(os.environ.get("CLAUDE_VAULT", Path.home() / "Global Claude Vault"))
 
 
@@ -66,7 +73,7 @@ def vault_display_path(vault: Path) -> str:
 def slugify(name: str) -> str:
     s = name.lower()
     s = s.replace(" ", "-").replace("_", "-")
-    s = s.translate(str.maketrans("ışğüöçİŞĞÜÖÇ", "isgüocISGUOC"))
+    s = s.translate(str.maketrans("ışğüöçİŞĞÜÖÇ", "isguocISGUOC"))
     return re.sub(r"[^a-z0-9-]", "", s)
 
 
@@ -125,6 +132,7 @@ def run_scan(vault: Path) -> None:
         [sys.executable, str(scanner), "--quiet"],
         capture_output=True,
         text=True,
+        env={**os.environ, "CLAUDE_VAULT": str(vault)},
     )
     if result.returncode != 0 and result.stderr:
         print(f"[vault] WARN: scan-sessions.py exited {result.returncode}: {result.stderr.strip()}", file=sys.stderr)
@@ -341,7 +349,12 @@ When importing a session:
 
 
 def bootstrap_vault(vault: Path) -> None:
-    """Create a minimal global vault skeleton when the directory does not exist."""
+    """Create a minimal global vault skeleton when it is not yet initialized.
+
+    Guarded on CLAUDE.md (not just vault dir existence) because the plugin
+    SessionStart hook pre-creates <vault>/scripts/ before invoking this script;
+    keying on the directory alone would skip bootstrap on plugin first-run.
+    All writes are idempotent (only created when absent)."""
     today = date.today().isoformat()
 
     dirs = [
@@ -476,11 +489,8 @@ def pending_count(vault: Path) -> int:
 # ── token logging ─────────────────────────────────────────────────────────────
 
 def log_token_usage(vault: Path, char_count: int) -> None:
-    """
-    Append a one-line entry to {vault}/state/token-log.txt.
-    Estimate: 1 token ≈ 4 characters (conservative for mixed TR/EN text).
-    """
-    token_estimate = char_count // 4
+    """Append a one-line entry to {vault}/state/token-log.txt."""
+    token_estimate = char_count // 4  # Token estimate: 1 token ≈ 4 chars
     log_file = vault / "state" / "token-log.txt"
     try:
         log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -499,7 +509,7 @@ def log_token_usage(vault: Path, char_count: int) -> None:
 
 def main() -> None:
     vault = get_vault()
-    if not vault.exists():
+    if not (vault / "CLAUDE.md").exists():
         bootstrap_vault(vault)
 
     project_dir   = get_project_dir()

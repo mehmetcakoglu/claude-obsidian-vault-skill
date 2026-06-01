@@ -49,7 +49,7 @@ bug. You ended the session; today you run:
 
 The flow:
 
-1. Claude reads `~/claude-vault/state/pending.md`, picks the biggest
+1. Claude reads `~/Global Claude Vault/state/pending.md`, picks the biggest
    unprocessed session.
 2. It maps the session's project folder to your local repository. The repo
    has `docs/vault/CLAUDE.md` → **project vault**.
@@ -69,7 +69,7 @@ The flow:
    - `decisions/2026-04-22-redis-rate-cache-30s-ttl.md`
    - `bugs/invoice-total-recomputed-thrice.md`
 6. Claude updates `docs/vault/index.md`, appends to `log.md`, appends the
-   session ID to `~/claude-vault/state/ingested.txt`, re-runs the scan,
+   session ID to `~/Global Claude Vault/state/ingested.txt`, re-runs the scan,
    commits with `docs(vault): ingest #N — invoice-refactor`.
 
 Now tomorrow when someone asks _"why is proration a standalone module?"_,
@@ -159,13 +159,13 @@ in `chat-backend`. The fix was the same. Where does the lesson live?
 
 - Bug itself → `billing-service/docs/vault/bugs/<slug>.md` (project-specific)
 - Underlying **pattern** (e.g. "async cache invalidation fires before the new
-  value lands") → `~/claude-vault/lessons/<slug>.md` (global)
+  value lands") → `~/Global Claude Vault/lessons/<slug>.md` (global)
 
 The project bug page links to the global lesson:
 
 ```yaml
 # billing-service/docs/vault/bugs/stripe-webhook-replay.md
-related: "[[~/claude-vault/lessons/async-cache-invalidation-race.md]]"
+related: "[[~/Global Claude Vault/lessons/async-cache-invalidation-race.md]]"
 ```
 
 Next time you encounter the same pattern in a third project, Claude finds the

@@ -6,7 +6,7 @@ allowed-tools: Read($CLAUDE_VAULT/**), Read(~/Global Claude Vault/**), Read(~/.c
 
 # /vault:ingest
 
-Process one pending Claude Code session from `${CLAUDE_VAULT:-$HOME/claude-vault}/state/pending.md` into the appropriate vault, following the LLM-Wiki INGEST rules defined in each vault's `CLAUDE.md`.
+Process one pending Claude Code session from `${CLAUDE_VAULT:-$HOME/Global Claude Vault}/state/pending.md` into the appropriate vault, following the LLM-Wiki INGEST rules defined in each vault's `CLAUDE.md`.
 
 ## Argument
 
@@ -14,7 +14,7 @@ Process one pending Claude Code session from `${CLAUDE_VAULT:-$HOME/claude-vault
 
 ## Pre-flight
 
-1. Read `${CLAUDE_VAULT:-$HOME/claude-vault}/state/pending.md`. If empty → say "Queue is empty." and stop.
+1. Read `${CLAUDE_VAULT:-$HOME/Global Claude Vault}/state/pending.md`. If empty → say "Queue is empty." and stop.
 2. Pick the target session:
    - If `$1` is provided: match the row whose session ID starts with `$1`. Error if not found.
    - Otherwise: take the first row.
@@ -22,7 +22,7 @@ Process one pending Claude Code session from `${CLAUDE_VAULT:-$HOME/claude-vault
    - **Source path**: `~/.claude/projects/<project>/<session-id>.jsonl`
    - **Target vault**:
      - If the project folder name maps to a local repository that has `docs/vault/CLAUDE.md`, use that **project vault**.
-     - Otherwise, use the **global vault** at `${CLAUDE_VAULT:-$HOME/claude-vault}`.
+     - Otherwise, use the **global vault** at `${CLAUDE_VAULT:-$HOME/Global Claude Vault}`.
 
 ## Ingest (follow the target vault's CLAUDE.md)
 

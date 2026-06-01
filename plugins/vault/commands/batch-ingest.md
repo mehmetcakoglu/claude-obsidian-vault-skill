@@ -11,7 +11,7 @@ Process multiple pending sessions from the ingest queue in a single command, cal
 ## Argument
 
 - `$1` — optional maximum number of sessions to process in this run.
-  - If omitted, read `auto_ingest_max_per_session` from `${CLAUDE_VAULT:-$HOME/claude-vault}/vault-config.json`. If the key is absent, default to **5**.
+  - If omitted, read `auto_ingest_max_per_session` from `${CLAUDE_VAULT:-$HOME/Global Claude Vault}/vault-config.json`. If the key is absent, default to **5**.
   - Pass `all` to process every pending session regardless of count (use with caution on large queues — context pressure).
 
 ## Pre-flight

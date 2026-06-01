@@ -1,7 +1,7 @@
 {
   "name": "vault",
-  "description": "Hybrid knowledge vault for Claude Code — auto-archives sessions into an Obsidian-compatible wiki, split between a global (~/claude-vault/) vault and per-project (docs/vault/) vaults. At session start, vault context (index, project entity, recent sessions) is automatically injected so Claude can reference past decisions and lessons without re-discovering them. Builds on the LLM-Wiki pattern by Selma Kocabıyık.",
-  "version": "1.0.0",
+  "description": "Hybrid knowledge vault for Claude Code — auto-archives sessions into an Obsidian-compatible wiki, split between a global (~/Global Claude Vault/) vault and per-project (docs/vault/) vaults. At session start, vault context (index, project entity, recent sessions) is automatically injected so Claude can reference past decisions and lessons without re-discovering them. Builds on the LLM-Wiki pattern by Selma Kocabıyık.",
+  "version": "1.0.1",
   "author": {
     "name": "Mehmet Çakoğlu"
   },
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"import pathlib,subprocess,sys; p=pathlib.Path('${CLAUDE_PLUGIN_ROOT}')/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p)]) if p.exists() else None\"",
+            "command": "python3 -c \"import pathlib,subprocess,sys,os,shutil; plugin=pathlib.Path(os.environ.get('CLAUDE_PLUGIN_ROOT','')); vault=pathlib.Path(os.environ.get('CLAUDE_VAULT',str(pathlib.Path.home()/'Global Claude Vault'))); scan_src=plugin/'scripts'/'scan-sessions.py'; scan_dst=vault/'scripts'/'scan-sessions.py'; scan_dst.parent.mkdir(parents=True,exist_ok=True) or (shutil.copy(str(scan_src),str(scan_dst)) if scan_src.exists() and not scan_dst.exists() else None); p=plugin/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p),str(vault)]) if p.exists() else None\" 2>/dev/null || python -c \"import pathlib,subprocess,sys,os,shutil; plugin=pathlib.Path(os.environ.get('CLAUDE_PLUGIN_ROOT','')); vault=pathlib.Path(os.environ.get('CLAUDE_VAULT',str(pathlib.Path.home()/'Global Claude Vault'))); scan_src=plugin/'scripts'/'scan-sessions.py'; scan_dst=vault/'scripts'/'scan-sessions.py'; scan_dst.parent.mkdir(parents=True,exist_ok=True) or (shutil.copy(str(scan_src),str(scan_dst)) if scan_src.exists() and not scan_dst.exists() else None); p=plugin/'scripts'/'vault-context.py'; subprocess.run([sys.executable,str(p),str(vault)]) if p.exists() else None\"",
             "timeout": 30
           }
         ]

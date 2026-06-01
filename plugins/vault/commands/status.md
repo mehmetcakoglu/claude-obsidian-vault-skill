@@ -45,7 +45,7 @@ Show a comprehensive health snapshot of the vault system in a single glance.
    2. For any session ID in `ingested.txt` NOT covered by `ingest-sizes.txt`, try:
       - `~/.claude/projects/*/SESSION_ID.jsonl` — if found, add its byte size
    3. Sum → `total_raw_bytes`, count → `sessions_with_size`
-   4. `total_raw_tokens = total_raw_bytes / 5`
+   4. `total_raw_tokens = total_raw_bytes / 4`  (1 token ≈ 4 bytes/chars — same divisor as the injection log and README; all figures are estimates)
 
    **Step C — Compute savings** (only if `sessions_with_size > 0`):
    ```
@@ -87,7 +87,7 @@ vault status
     Estimated saved  : ~49,551,700 tokens
     ROI              : vault injected 0.1% of what sessions contained  (~1,026×)
 ────────────────────────────────────────────────────────
-  ℹ  JSONL bytes ÷ 5 = token estimate. Sessions missing: 4/42 (JSONL not on disk).
+  ℹ  JSONL bytes ÷ 4 = token estimate. Sessions missing: 4/42 (JSONL not on disk).
 ```
 
    **Degraded output** (when raw size data is unavailable — e.g. no ingest yet):

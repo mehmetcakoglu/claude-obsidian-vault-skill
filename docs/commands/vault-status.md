@@ -82,7 +82,7 @@ Update check   : 2026-05-05 (v1.0.1 available — run /vault:update)
 **Step B — Raw session cost (best-effort):**
 1. Check `state/ingest-sizes.txt` (populated by `/vault:ingest` and `/vault:doctor`)
 2. For sessions not in that file, scan `~/.claude/projects/*/SESSION_ID.jsonl` for byte sizes
-3. `raw_tokens ≈ total_bytes / 5`
+3. `raw_tokens ≈ total_bytes / 4`  (1 token ≈ 4 bytes/chars — same divisor as the injection log and README; estimates only)
 
 **Step C — Savings:** `estimated_saved = raw_tokens - total_injected`
 

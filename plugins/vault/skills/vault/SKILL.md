@@ -1,7 +1,7 @@
 ---
 name: vault
 description: |
-  Hybrid knowledge vault system (Obsidian-compatible markdown wikis) that archives Claude Code sessions, architectural decisions, bugs, domain concepts, entities, and reusable patterns. Two vaults coexist: a global vault (`~/claude-vault/`) for cross-project knowledge and per-project vaults (`<project>/docs/vault/`) for project-specific knowledge. Implements the LLM-Wiki pattern (RAW → WIKI ← SCHEMA) with INGEST / QUERY / LINT operations — the LLM maintains a persistent, cumulative artifact that grows smarter with every session.
+  Hybrid knowledge vault system (Obsidian-compatible markdown wikis) that archives Claude Code sessions, architectural decisions, bugs, domain concepts, entities, and reusable patterns. Two vaults coexist: a global vault (`~/Global Claude Vault/`) for cross-project knowledge and per-project vaults (`<project>/docs/vault/`) for project-specific knowledge. Implements the LLM-Wiki pattern (RAW → WIKI ← SCHEMA) with INGEST / QUERY / LINT operations — the LLM maintains a persistent, cumulative artifact that grows smarter with every session.
 
   Use this skill whenever the user:
   - Asks about past work, prior decisions, earlier bugs, or previous sessions ("what did we decide about X", "have we seen this bug before", "why did we go with Y")
@@ -23,13 +23,13 @@ Two vaults coexist:
 
 | Vault | Location | Content |
 |---|---|---|
-| **Global** | `~/claude-vault/` (configurable via `$CLAUDE_VAULT`) | Cross-project knowledge: Claude Code patterns, general workflows, domain-agnostic lessons, personal preferences |
+| **Global** | `~/Global Claude Vault/` (configurable via `$CLAUDE_VAULT`) | Cross-project knowledge: Claude Code patterns, general workflows, domain-agnostic lessons, personal preferences |
 | **Project** | `<project-root>/docs/vault/` | Project-specific knowledge: domain rules, architectural decisions, bugs, entities, feature history |
 
 Both use the LLM-Wiki pattern (Obsidian-compatible markdown, YAML frontmatter, `[[wiki-link]]` cross-refs). This pattern was introduced by **Selma Kocabıyık** in the [knowledge-pipeline](https://github.com/selmakcby/knowledge-pipeline) repository; this skill adapts it to Claude Code with auto-scanning and hybrid scoping.
 
 **Constitution files (schema):**
-- Global: `~/claude-vault/CLAUDE.md`
+- Global: `~/Global Claude Vault/CLAUDE.md`
 - Project: `<project-root>/docs/vault/CLAUDE.md`
 
 Always read the relevant `CLAUDE.md` before operating on a vault — the schema lives there and may have evolved since this skill was installed.
@@ -45,9 +45,9 @@ Always read the relevant `CLAUDE.md` before operating on a vault — the schema 
 
 A `SessionStart` hook runs `vault-context.py` **synchronously** on every new session. It scans the queue, auto-creates a project entity if one doesn't exist, then injects the vault index + project entity + recent sessions into Claude's context as a `system-reminder`. This means Claude already has relevant decisions and lessons loaded before the first user message — manual `/vault:scan` is rarely needed.
 
-If `auto_ingest=true` is set in `~/claude-vault/vault-config.json`, the hook also instructs Claude to drain the pending queue automatically at session start (respecting `auto_ingest_max_per_session`).
+If `auto_ingest=true` is set in `~/Global Claude Vault/vault-config.json`, the hook also instructs Claude to drain the pending queue automatically at session start (respecting `auto_ingest_max_per_session`).
 
-**Session registry**: `~/claude-vault/state/ingested.txt` — shared between both vaults. After any ingest (global or project) the session ID is appended here so the scan never proposes it again.
+**Session registry**: `~/Global Claude Vault/state/ingested.txt` — shared between both vaults. After any ingest (global or project) the session ID is appended here so the scan never proposes it again.
 
 ## Which vault? (routing rule)
 
@@ -57,7 +57,7 @@ When the user asks to record something, pick the target vault using:
 |---|---|
 | Project-specific domain knowledge, architecture, bug, entity | **Project** (`docs/vault/`) |
 | Project stack-specific preference or pattern | **Project** |
-| Cross-project Claude Code pattern (hooks, skills, MCP) | **Global** (`~/claude-vault/`) |
+| Cross-project Claude Code pattern (hooks, skills, MCP) | **Global** (`~/Global Claude Vault/`) |
 | General git, CI, testing, or tooling workflow | **Global** |
 | Personal style, role preferences, collaboration defaults | **Global** |
 | Confidential / NDA material | **Neither** (out of scope) |
@@ -80,7 +80,7 @@ When importing a session, PR, bug report, or decision source into a vault:
    - `concepts/<slug>.md` (for new domain concepts)
    - `lessons/<slug>.md` (global vault; root cause + prevention)
 4. Update `index.md` and `log.md`.
-5. Append the session ID to `~/claude-vault/state/ingested.txt`.
+5. Append the session ID to `~/Global Claude Vault/state/ingested.txt`.
 6. Commit with the `docs(vault):` prefix.
 
 **Atomicity rule**: one decision = one page; one bug = one page. Do not merge.
@@ -177,11 +177,11 @@ Body. Every non-trivial claim points to a source (`[[sources/...]]` or external 
 
 ## Related tooling
 
-- `~/claude-vault/scripts/vault-context.py` — synchronous SessionStart hook: scans queue, auto-creates project entity, injects vault context into session
-- `~/claude-vault/scripts/scan-sessions.py` — JSONL scanner; writes sorted pending queue (cross-platform Python)
+- `~/Global Claude Vault/scripts/vault-context.py` — synchronous SessionStart hook: scans queue, auto-creates project entity, injects vault context into session
+- `~/Global Claude Vault/scripts/scan-sessions.py` — JSONL scanner; writes sorted pending queue (cross-platform Python)
 - `*.sh` / `*.ps1` wrappers — thin callers for Unix and Windows PowerShell respectively
 - `~/.claude/commands/vault/{init,scan,ingest}.md` — slash command definitions
-- `~/claude-vault/state/ingested.txt` — shared session ID registry (global + all project vaults)
+- `~/Global Claude Vault/state/ingested.txt` — shared session ID registry (global + all project vaults)
 - `~/.claude/settings.json` `SessionStart` hook — runs `vault-context.py` synchronously on every new conversation
 
 ## Out of scope (use other mechanisms instead)

@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Single-plugin marketplace for the Obsidian-compatible vault skill — auto-archives Claude Code sessions into a persistent, atomic knowledge wiki.",
-    "version": "0.1.0"
+    "version": "1.0.1"
   },
   "plugins": [
     {
       "name": "vault",
       "source": "./plugins/vault",
-      "description": "Hybrid knowledge vault: auto-archives Claude Code sessions into an Obsidian-compatible wiki, split between a global (~/claude-vault/) vault and per-project (docs/vault/) vaults.",
-      "version": "0.1.0",
+      "description": "Hybrid knowledge vault: auto-archives Claude Code sessions into an Obsidian-compatible wiki, split between a global (~/Global Claude Vault/) vault and per-project (docs/vault/) vaults.",
+      "version": "1.0.1",
       "homepage": "https://github.com/mehmetcakoglu/claude-obsidian-vault-skill",
       "license": "MIT",
       "keywords": [

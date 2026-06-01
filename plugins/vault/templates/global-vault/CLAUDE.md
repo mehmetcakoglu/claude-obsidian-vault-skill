@@ -27,7 +27,7 @@ Do **not** write into the global vault:
 ## 3. Directory layout
 
 ```
-~/claude-vault/
+~/Global Claude Vault/
 ├── CLAUDE.md          # this file (schema)
 ├── index.md           # hand-maintained search surface
 ├── log.md             # chronological ingest log

@@ -10,10 +10,12 @@ Usage:
     python3 scan-sessions.py --quiet   # silent (for hooks)
 
 Env:
-    CLAUDE_VAULT        override vault location (default: ~/claude-vault)
+    CLAUDE_VAULT        override vault location (default: ~/Global Claude Vault)
     CLAUDE_PLUGIN_ROOT  set by Claude Code plugin system; used for first-run
                         bootstrap when the vault skeleton does not yet exist
 """
+
+from __future__ import annotations
 
 import json
 import os
@@ -30,7 +32,7 @@ LIVE_THRESHOLD_SEC = 600  # skip files modified in last 10 min (live sessions)
 # ── paths ─────────────────────────────────────────────────────────────────────
 
 def get_vault() -> Path:
-    return Path(os.environ.get("CLAUDE_VAULT", Path.home() / "claude-vault"))
+    return Path(os.environ.get("CLAUDE_VAULT", Path.home() / "Global Claude Vault"))
 
 
 def get_projects_dir() -> Path:
@@ -111,6 +113,7 @@ def extract_metadata(jsonl_path: Path) -> dict:
                     text = re.sub(r"<[^>]+>", " ", text).strip()
                     text = re.sub(r"\s+", " ", text)
                     if len(text) > 20:
+                        # Written verbatim to pending.md — not secret-filtered
                         first_prompt = text[:120]
     except OSError:
         pass

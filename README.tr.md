@@ -51,7 +51,7 @@ cd claude-obsidian-vault-skill
 .\install.ps1
 ```
 
-> **Python 3** tüm platformlarda PATH'te olması gerekir.
+> **Python 3.7+** tüm platformlarda PATH'te olması gerekir.
 
 **Özel vault konumu** — kurulumdan önce `CLAUDE_VAULT` ortam değişkenini ayarla:
 
@@ -266,12 +266,12 @@ Vault var — yeni oturum:
 JSONL dosya boyutu, "bu oturumda ne kadar bilgi vardı" sorusunun gerçek cevabıdır. Vault olmadan gelecekte o oturumun içeriğini anlamak için transkriptin tamamını ya da bir kısmını okumak gerekir. Vault bunu oturum başında inject edilen küçük bir özete sıkıştırır.
 
 ```
-oturum başına tasarruf ≈ (JSONL bayt ÷ 5) − inject edilen token
+oturum başına tasarruf ≈ (JSONL bayt ÷ 4) − inject edilen token
 ```
 
-_1 token ≈ 5 bayt — JSON transcript verisi için (JSON yapısal yükü düz metinden daha ağır)._
+_1 token ≈ 4 karakter — kod tabanı ve token log boyunca kullanılan tutarlı tahmin. Tüm sayılar tahminîdir; gerçek tokenizasyon modele ve içeriğe göre değişir._
 
-3 MB'lık bir oturum ~600K token bilgi içerir. Vault bunun özünü ~1.200 token olarak inject eder. Sıkıştırma oranı genellikle **200–500×** arasındadır.
+3 MB'lık bir oturum ~750K token bilgi içerir. Vault bunun özünü ~1.200 token olarak inject eder. Sıkıştırma oranı genellikle **200–500×** arasındadır.
 
 ---
 

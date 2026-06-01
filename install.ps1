@@ -58,12 +58,12 @@ Say "Installed skill → $SkillDst\SKILL.md"
 
 # ---- 2. install slash commands ----
 New-Item -ItemType Directory -Force -Path $CmdDst | Out-Null
-$commands = @("init.md","scan.md","ingest.md","batch-ingest.md","auto-ingest.md","update.md","status.md","help.md","skip.md")
+$commands = @("init.md","scan.md","ingest.md","batch-ingest.md","auto-ingest.md","update.md","status.md","help.md","skip.md","doctor.md")
 foreach ($f in $commands) {
     $src = Join-Path $CmdSrc $f
     if (Test-Path $src) { Copy-Item -Force $src (Join-Path $CmdDst $f) }
 }
-Say "Installed slash commands: /vault:init /vault:scan /vault:ingest /vault:batch-ingest /vault:auto-ingest /vault:update /vault:status /vault:help /vault:skip"
+Say "Installed slash commands: /vault:init /vault:scan /vault:ingest /vault:batch-ingest /vault:auto-ingest /vault:update /vault:status /vault:help /vault:skip /vault:doctor"
 
 # ---- 3. install global vault skeleton (do not overwrite existing files) ----
 $vaultDirs = @(
@@ -157,10 +157,12 @@ for entry in session_hooks:
 session_hooks[:] = updated
 
 vault_fwd = vault_home.replace('\\\\', '/')
+# Pass vault path as argv[1] so vault-context.py uses the correct path without relying on env var.
 hook_cmd = (
     f'{python_exe} -c "import pathlib,subprocess,sys,os; '
-    f"p=pathlib.Path(os.environ.get('CLAUDE_VAULT','{vault_fwd}'))/'scripts'/'vault-context.py'; "
-    f'subprocess.run([sys.executable,str(p)]) if p.exists() else None"'
+    f"vault=pathlib.Path(os.environ.get('CLAUDE_VAULT','{vault_fwd}')); "
+    f"p=vault/'scripts'/'vault-context.py'; "
+    f'subprocess.run([sys.executable,str(p),str(vault)]) if p.exists() else None"'
 )
 
 session_hooks.append({
@@ -205,7 +207,7 @@ $skillFile = Join-Path $SkillDst "SKILL.md"
 if (Test-Path $skillFile) { Say "  OK skill (SKILL.md)" }
 else { Warn "  FAIL skill not found at $skillFile"; $VerifyOK = $false }
 
-foreach ($cmd in @("init","scan","ingest","batch-ingest","auto-ingest","update","status","help","skip")) {
+foreach ($cmd in @("init","scan","ingest","batch-ingest","auto-ingest","update","status","help","skip","doctor")) {
     $path = Join-Path $CmdDst "$cmd.md"
     if (Test-Path $path) { Say "  OK /vault:$cmd" }
     else { Warn "  FAIL /vault:$cmd not found"; $VerifyOK = $false }

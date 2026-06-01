@@ -24,7 +24,7 @@ External integrations: {{INTEGRATIONS}}
 
 - **Cross-project knowledge** (Claude Code patterns, general git/CI workflow,
   tool tutorials) → write into the global vault at
-  `${CLAUDE_VAULT:-$HOME/claude-vault}` instead.
+  `${CLAUDE_VAULT:-$HOME/Global Claude Vault}` instead.
 - **NDA / confidential material** that cannot be shared with collaborators.
 - **Ephemeral conversation state** — use TodoWrite / plan mode / memory.
 - **Runtime preferences** (e.g. "always use Sonnet 4.6") — those belong in
@@ -50,7 +50,7 @@ External integrations: {{INTEGRATIONS}}
 ```
 
 Shared state with the global vault lives at
-`${CLAUDE_VAULT:-$HOME/claude-vault}/state/ingested.txt`.
+`${CLAUDE_VAULT:-$HOME/Global Claude Vault}/state/ingested.txt`.
 
 ## 4. Page format
 
@@ -109,13 +109,13 @@ Body: markdown. Every non-trivial claim cites a source — either
 
 ### INGEST (source → pages)
 
-1. Read `${CLAUDE_VAULT:-$HOME/claude-vault}/state/pending.md` (or take a session ID argument).
+1. Read `${CLAUDE_VAULT:-$HOME/Global Claude Vault}/state/pending.md` (or take a session ID argument).
 2. Parse the source via `ctx_execute` / `ctx_execute_file`. Never `Read` multi-megabyte transcripts.
 3. Show a 5–7 bullet summary; wait for approval.
 4. Write pages following §3–§5.
 5. Update `index.md`; append to `log.md`.
-6. Append the session ID to `${CLAUDE_VAULT:-$HOME/claude-vault}/state/ingested.txt`.
-7. Re-run `${CLAUDE_VAULT:-$HOME/claude-vault}/scripts/scan-sessions.sh --quiet`.
+6. Append the session ID to `${CLAUDE_VAULT:-$HOME/Global Claude Vault}/state/ingested.txt`.
+7. Re-run `${CLAUDE_VAULT:-$HOME/Global Claude Vault}/scripts/scan-sessions.sh --quiet`.
 8. Commit with a `docs(vault):` message.
 
 ### QUERY (question → answer)

@@ -51,7 +51,7 @@ cd claude-obsidian-vault-skill
 .\install.ps1
 ```
 
-> **Requires Python 3** in PATH on all platforms.
+> **Requires Python 3.7+** in PATH on all platforms.
 
 **Custom vault location** — set `CLAUDE_VAULT` before installing:
 
@@ -120,6 +120,8 @@ That's it. From here, the `SessionStart` hook scans automatically every time Cla
 ### Archiving sessions
 
 Sessions appear in the queue ~10 minutes after they end. Process them whenever it suits you:
+
+> **Privacy note:** The queue (`state/pending.md`) stores the first ~120 characters of your first prompt per session as a plain-text preview. This snippet is written verbatim and is not secret-filtered. Avoid storing API keys or passwords in your first message if you share the vault directory.
 
 ```
 /vault:scan              # check the queue
@@ -266,12 +268,12 @@ With vault — future session:
 The JSONL file size is the ground truth for "how much information was in this session." To understand that session's content in a future conversation without a vault, you'd need to read some or all of that transcript. The vault condenses it to a small summary injected at session start.
 
 ```
-savings per session ≈ (JSONL bytes ÷ 5) − injection tokens
+savings per session ≈ (JSONL bytes ÷ 4) − injection tokens
 ```
 
-_1 token ≈ 5 bytes for JSON transcript data (JSON structure overhead is higher than plain text)._
+_1 token ≈ 4 characters — a consistent estimate used throughout the codebase and token log. All numbers are estimates; actual tokenization varies by model and content._
 
-A 3 MB session contains ~600K tokens of information. The vault injects ~1,200 tokens of its essence. The compression ratio is typically **200–500×**.
+A 3 MB session contains ~750K tokens of information. The vault injects ~1,200 tokens of its essence. The compression ratio is typically **200–500×**.
 
 ---
 

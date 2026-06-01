@@ -136,11 +136,13 @@ for entry in session_hooks:
         updated.append({**entry, "hooks": filtered})
 session_hooks[:] = updated
 
-# Build cross-platform hook command using CLAUDE_VAULT env var with fallback
+# Build cross-platform hook command: resolve vault at runtime (CLAUDE_VAULT > installed path),
+# pass it as argv[1] so vault-context.py uses the correct path even without env var.
 hook_cmd = (
     f'{python_exe} -c "import pathlib,subprocess,sys,os; '
-    f"p=pathlib.Path(os.environ.get('CLAUDE_VAULT','{vault_home}'))/'scripts'/'vault-context.py'; "
-    f'subprocess.run([sys.executable,str(p)]) if p.exists() else None"'
+    f"vault=pathlib.Path(os.environ.get('CLAUDE_VAULT','{vault_home}')); "
+    f"p=vault/'scripts'/'vault-context.py'; "
+    f'subprocess.run([sys.executable,str(p),str(vault)]) if p.exists() else None"'
 )
 
 session_hooks.append({

@@ -66,7 +66,7 @@ The output is itself a wiki page: `syntheses/lint-YYYY-MM-DD.md`.
 
 | Vault | Location | Content |
 |---|---|---|
-| Global | `~/claude-vault/` | Cross-project: Claude Code patterns, general tooling, personal preferences |
+| Global | `~/Global Claude Vault/` | Cross-project: Claude Code patterns, general tooling, personal preferences |
 | Project | `<repo>/docs/vault/` | Project-specific: domain rules, architecture, bugs, entities |
 
 **Rule of thumb:** if the knowledge is useful in a project you don't have yet,
@@ -78,7 +78,7 @@ captures lessons about Claude Code itself, your tooling habits, recurring
 debugging patterns.
 
 **Shared registry.** Both vaults share
-`~/claude-vault/state/ingested.txt`, so a session that was ingested into a
+`~/Global Claude Vault/state/ingested.txt`, so a session that was ingested into a
 project vault is never re-queued for the global vault.
 
 ## Semi-automatic ingest (Claude Code addition)
@@ -92,7 +92,7 @@ conversation. In one pass it:
 
 1. **Scans** `~/.claude/projects/*/*.jsonl` — skips live sessions (mtime < 10
    min) and already-ingested IDs, writes a sorted queue to
-   `~/claude-vault/state/pending.md`.
+   `~/Global Claude Vault/state/pending.md`.
 2. **Auto-creates a project entity** — if no entity exists for the current
    project directory, one is generated from stack markers (`manage.py`,
    `package.json`, `go.mod`…) and inserted into `index.md`.

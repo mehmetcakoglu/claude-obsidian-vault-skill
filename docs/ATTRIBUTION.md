@@ -49,7 +49,7 @@ below changes the core pattern — they are operational conveniences:
   steps for the user.
 - **Auto project entity**: on first visit to a project, `vault-context.py`
   detects the stack and creates `entities/<slug>.md` automatically.
-- **Hybrid scoping**: a **global vault** (`~/claude-vault/`) for
+- **Hybrid scoping**: a **global vault** (`~/Global Claude Vault/`) for
   cross-project knowledge alongside **per-project vaults** (`docs/vault/`) for
   project-specific knowledge.
 - **Shared session registry**: `state/ingested.txt` is shared between the
